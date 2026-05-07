@@ -9,11 +9,35 @@ dependencies:
   flutter:
     sdk: flutter
   cupertino_icons: ^1.0.8
+  flutter_riverpod: ^2.5.1
+  file_picker: ^8.0.0
+  path_provider: ^2.1.3
+  path: ^1.9.0
+  encrypt: ^5.0.3
+  flutter_secure_storage: ^10.0.0
+  secure_application: ^4.1.0
+  share_plus: ^12.0.2
+  gal: 2.0.0
+  open_file: 3.5.10
+  google_fonts: ^8.1.0
+  animations: ^2.2.0
+  crypto: ^3.0.7
+  permission_handler: ^12.0.1
+
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^5.0.0
+  flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.14.4
+
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "assets/app_brand.png"
+  min_sdk_android: 21
 
 flutter:
   uses-material-design: true
+  assets:
+    - assets/app_brand.png

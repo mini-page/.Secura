@@ -1,25 +1,50 @@
 import 'package:flutter/material.dart';
-
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../components/components.dart';
+import '../../core/file_action_handler.dart';
+import 'vault_provider.dart';
 
-class DecryptScreen extends StatelessWidget {
+class DecryptScreen extends ConsumerWidget with FileActionHandler {
   const DecryptScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final vaultState = ref.watch(filteredVaultProvider);
+
     return SafeArea(
       child: ListView(
         padding: const EdgeInsets.all(16),
-        children: const [
-          AppHeader(title: 'Secura'),
-          SizedBox(height: 16),
-          Text('Encrypted Files', style: TextStyle(fontSize: 32, fontWeight: FontWeight.w700)),
-          SizedBox(height: 8),
-          Text('View and manage your securely encrypted files.'),
-          SizedBox(height: 16),
-          FileItemCard(name: 'Financial_Q3_Report.pdf', meta: '2.4 MB • Modified Oct 12, 2025', encrypted: true),
-          FileItemCard(name: 'Passport_Scans.zip', meta: '15.8 MB • Modified Sep 05, 2025', encrypted: true),
-          FileItemCard(name: 'Confidential_Meeting.mp4', meta: '850 MB • Modified Dec 15, 2025', encrypted: true),
+        physics: const BouncingScrollPhysics(
+          decelerationRate: ScrollDecelerationRate.fast,
+        ),
+        children: [
+          const AppHeader(title: 'Encrypted'),
+          const SizedBox(height: 16),
+          const Text('SECURED VAULT', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 2, color: Colors.grey)),
+          const SizedBox(height: 16),
+          vaultState.when(
+            data: (files) {
+              final encryptedFiles = files.where((f) => f.isEncrypted).toList();
+              if (encryptedFiles.isEmpty) {
+                return const Center(
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(vertical: 40),
+                    child: Text('No encrypted files.', style: TextStyle(fontWeight: FontWeight.bold)),
+                  ),
+                );
+              }
+              return Column(
+                children: encryptedFiles.asMap().entries.map((entry) => FileItemCard(
+                  file: entry.value,
+                  index: entry.key,
+                  onAction: (action) => handleFileAction(context, ref, entry.value, action),
+                )).toList(),
+              );
+            },
+            loading: () => const Center(child: CircularProgressIndicator()),
+            error: (err, stack) => Center(child: Text('Error: $err')),
+          ),
+          const SizedBox(height: 100),
         ],
       ),
     );

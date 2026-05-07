@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 
 import '../../components/components.dart';
+import '../auth/phone_auth_screen.dart';
 
 class OnboardingScreen extends StatefulWidget {
-  const OnboardingScreen({required this.onGetStarted, super.key});
-
-  final VoidCallback onGetStarted;
+  const OnboardingScreen({super.key});
 
   @override
   State<OnboardingScreen> createState() => _OnboardingScreenState();
@@ -14,6 +13,7 @@ class OnboardingScreen extends StatefulWidget {
 class _OnboardingScreenState extends State<OnboardingScreen> {
   final PageController _controller = PageController();
   int _index = 0;
+
 
   static const _pages = [
     (
@@ -54,7 +54,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     return Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        CircleAvatar(radius: 64, child: Icon(page.$4, size: 56)),
+                        if (i == 0)
+                          Image.asset('assets/app_brand.png', width: 128, height: 128)
+                        else
+                          CircleAvatar(radius: 64, child: Icon(page.$4, size: 56)),
                         const SizedBox(height: 24),
                         Text(page.$1, style: Theme.of(context).textTheme.headlineMedium, textAlign: TextAlign.center),
                         const SizedBox(height: 12),
@@ -71,7 +74,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               PrimaryCtaButton(
                 label: _index == _pages.length - 1 ? 'Get Started' : 'Next',
                 onPressed: _index == _pages.length - 1
-                    ? widget.onGetStarted
+                    ? () {
+                        Navigator.of(context).pushReplacement(
+                          MaterialPageRoute(builder: (_) => const PhoneAuthScreen()),
+                        );
+                      }
                     : () => _controller.nextPage(duration: const Duration(milliseconds: 220), curve: Curves.easeOut),
               ),
             ],

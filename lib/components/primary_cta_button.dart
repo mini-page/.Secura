@@ -3,14 +3,14 @@ import 'package:flutter/material.dart';
 class PrimaryCtaButton extends StatelessWidget {
   const PrimaryCtaButton({
     required this.label,
-    required this.onPressed,
+    this.onPressed,
     this.icon,
     this.expand = true,
     super.key,
   });
 
   final String label;
-  final VoidCallback onPressed;
+  final VoidCallback? onPressed;
   final IconData? icon;
   final bool expand;
 

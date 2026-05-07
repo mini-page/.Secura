@@ -14,15 +14,47 @@ class ThemeModeSelector extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: SegmentedButton<ThemeMode>(
-          segments: const [
-            ButtonSegment(value: ThemeMode.light, label: Text('Light'), icon: Icon(Icons.light_mode_outlined)),
-            ButtonSegment(value: ThemeMode.dark, label: Text('Dark'), icon: Icon(Icons.dark_mode_outlined)),
-            ButtonSegment(value: ThemeMode.system, label: Text('System'), icon: Icon(Icons.settings_suggest_outlined)),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        child: Row(
+          children: [
+            _buildOption(context, ThemeMode.light, Icons.light_mode_outlined, 'Light'),
+            _buildOption(context, ThemeMode.dark, Icons.dark_mode_outlined, 'Dark'),
+            _buildOption(context, ThemeMode.system, Icons.settings_brightness_outlined, 'Auto'),
           ],
-          selected: {selected},
-          onSelectionChanged: (selection) => onChanged(selection.first),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildOption(BuildContext context, ThemeMode mode, IconData icon, String label) {
+    final isSelected = selected == mode;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => onChanged(mode),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          decoration: BoxDecoration(
+            color: isSelected ? Theme.of(context).primaryColor.withValues(alpha: 0.1) : Colors.transparent,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Column(
+            children: [
+              Icon(
+                icon,
+                size: 20, // Smaller icon
+                color: isSelected ? Theme.of(context).primaryColor : Colors.grey,
+              ),
+              const SizedBox(height: 4),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 11, // Smaller font
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                  color: isSelected ? Theme.of(context).primaryColor : Colors.grey,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

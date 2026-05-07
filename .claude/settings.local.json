@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(flutter analyze *)",
+      "Bash(flutter test *)",
+      "Bash(flutter pub *)",
+      "Bash(sed -i '1d; 16d' lib/app_shell.dart)",
+      "Bash(sed -i '8d' lib/core/services/file_vault_service.dart)",
+      "Bash(sed -i '6d' lib/features/vault/import_screen.dart)"
+    ]
+  }
+}
