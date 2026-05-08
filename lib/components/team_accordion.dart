@@ -1,7 +1,6 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import 'package:font_awesome_flutter/src/icon_data.dart' as fa;
 import 'package:url_launcher/url_launcher.dart';
 
 /// Team member data model
@@ -183,7 +182,7 @@ class _TeamMemberTile extends StatelessWidget {
             ? [
                 BoxShadow(
                   color: primary.withValues(alpha: 0.12),
-                  blurRadius: 20,
+                  blurRadius: max(0.01, 20.0), // Ensure non-negative
                   offset: const Offset(0, 8),
                 ),
               ]
@@ -204,8 +203,14 @@ class _TeamMemberTile extends StatelessWidget {
               crossFadeState: isExpanded 
                   ? CrossFadeState.showSecond 
                   : CrossFadeState.showFirst,
-              firstChild: _buildCollapsedRow(isDark, primary),
-              secondChild: _buildExpandedCard(isDark, primary, screenWidth),
+              firstChild: KeyedSubtree(
+                key: const ValueKey('collapsed'),
+                child: _buildCollapsedRow(isDark, primary),
+              ),
+              secondChild: KeyedSubtree(
+                key: const ValueKey('expanded'),
+                child: _buildExpandedCard(isDark, primary, screenWidth),
+              ),
             ),
           ),
         ),
@@ -299,7 +304,7 @@ class _TeamMemberTile extends StatelessWidget {
                 boxShadow: [
                   BoxShadow(
                     color: primary.withValues(alpha: 0.25),
-                    blurRadius: 16,
+                    blurRadius: max(0.01, 16.0),
                     offset: const Offset(0, 8),
                   ),
                 ],

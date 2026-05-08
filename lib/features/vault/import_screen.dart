@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:path/path.dart' as p;
+import '../../components/secura_notifications.dart';
 import 'vault_provider.dart';
 
 class ImportScreen extends ConsumerStatefulWidget {
@@ -70,9 +71,7 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
             _loadDirectory(Directory('/storage/emulated/0'));
           } else {
             if (!mounted) return;
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Storage access is required for secure import.')),
-            );
+            SecuraNotifications.showError(context, 'Storage access is required for secure import.');
             setState(() => _loading = false);
           }
         } else {
@@ -107,9 +106,7 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
     } catch (e) {
       if (!mounted) return;
       setState(() => _loading = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Access Denied: ${p.basename(dir.path)}')),
-      );
+      SecuraNotifications.showError(context, 'Access Denied: ${p.basename(dir.path)}');
     }
   }
 
@@ -158,18 +155,42 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
 
     if (encrypt != null) {
       if (!mounted) return;
-      // Show blocking progress overlay
-      showGeneralDialog(
+      
+      // Use showDialog with a custom barrier for a cleaner transition
+      showDialog(
         context: context,
         barrierDismissible: false,
-        pageBuilder: (_, __, ___) => const Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              CircularProgressIndicator(color: Color(0xFF575992)),
-              SizedBox(height: 16),
-              Text('Securing File...', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, decoration: TextDecoration.none, fontSize: 14)),
-            ],
+        barrierColor: Colors.black.withValues(alpha: 0.7),
+        builder: (context) => PopScope(
+          canPop: false,
+          child: Center(
+            child: Material(
+              color: Colors.transparent,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const CircularProgressIndicator(
+                    color: Colors.white,
+                    strokeWidth: 3,
+                  ),
+                  const SizedBox(height: 24),
+                  const Text(
+                    'Securing File...', 
+                    style: TextStyle(
+                      color: Colors.white, 
+                      fontWeight: FontWeight.w900, 
+                      fontSize: 16,
+                      letterSpacing: 1,
+                    )
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    p.basename(file.path),
+                    style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 12),
+                  ),
+                ],
+              ),
+            ),
           ),
         ),
       );
@@ -179,15 +200,11 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
         if (!mounted) return;
         Navigator.pop(context); // close progress
         Navigator.pop(context); // go back to vault
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('File imported and original shredded.')),
-        );
+        SecuraNotifications.showSuccess(context, 'File imported and original shredded.');
       } catch (e) {
         if (!mounted) return;
         Navigator.pop(context); // close progress
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Import failed: $e')),
-        );
+        SecuraNotifications.showError(context, 'Import failed: $e');
       }
     }
   }

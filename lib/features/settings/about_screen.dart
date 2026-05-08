@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:secura/components/components.dart';
 
 class AboutScreen extends StatelessWidget {
@@ -39,6 +40,60 @@ class AboutScreen extends StatelessWidget {
           ),
           const SizedBox(height: 32),
 
+          _buildSectionHeader(context, 'CURRENT CAPABILITIES'),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                children: [
+                  _buildFeatureItem(FontAwesomeIcons.google, 'Google-Backed Identity', 'Secure login using industry-standard Google OAuth protocols.', isFontAwesome: true),
+                  _buildFeatureItem(Icons.enhanced_encryption_rounded, 'Local-First Vault', 'Complete file encryption before they ever touch your storage.'),
+                  _buildFeatureItem(Icons.cloud_done_rounded, 'Manual Cloud Sync', 'Total control over backing up your settings to your private Google Drive.'),
+                  _buildFeatureItem(Icons.vpn_key_rounded, 'Zero-Knowledge recovery', 'PIN recovery via personalized security questions with local hashing.'),
+                  _buildFeatureItem(Icons.auto_delete_rounded, 'Secure Shredding', 'Original files are overwritten and "shredded" after import to prevent recovery.'),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 32),
+
+          _buildSectionHeader(context, 'SECURITY HANDSHAKE'),
+          Card(
+            color: Theme.of(context).primaryColor.withValues(alpha: 0.05),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(24),
+              side: BorderSide(color: Theme.of(context).primaryColor.withValues(alpha: 0.1), width: 1.5),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Row(
+                    children: [
+                      Icon(Icons.security_rounded, color: Colors.green, size: 24),
+                      SizedBox(width: 12),
+                      Text(
+                        'ZERO-KNOWLEDGE MODEL',
+                        style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13, letterSpacing: 1),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Secura is built on the principle that only you should own your keys. Your PIN and security answers are hashed locally using SHA-256 and never sent to any server. We cannot recover your files because we literally do not have the keys.',
+                    style: TextStyle(height: 1.5, fontSize: 14, fontWeight: FontWeight.w500, color: Colors.grey),
+                  ),
+                  const SizedBox(height: 20),
+                  _buildSecurityTerm('AES-256-GCM', 'Military-grade encryption used for every file in your locker.'),
+                  _buildSecurityTerm('IV Isolation', 'Every file uses a unique 12-byte initialization vector for maximum defense.'),
+                  _buildSecurityTerm('Encrypted Metadata', 'Filenames are Base64 obfuscated to hide contents from OS search.'),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 32),
+
           // Enhanced Roadmap Section
           _buildSectionHeader(context, 'UPCOMING PROTOCOLS'),
           Container(
@@ -72,10 +127,10 @@ class AboutScreen extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 24),
-                _buildRoadmapItem('Real OAuth / Google Auth', 'Native integration for server-side identity verification.', true),
-                _buildRoadmapItem('Server-side Sync (MySQL)', 'Robust synchronization across all your mobile devices.', false),
-                _buildRoadmapItem('Encrypted Cloud Drive', 'Seamless integration with Google Drive & Dropbox.', false),
-                _buildRoadmapItem('Email-based OTP Recovery', 'Secure account recovery protocols via SMTP.', false),
+                _buildRoadmapItem('Biometric Unlocking', 'Seamless vault access via FaceID or Fingerprint sensors.', true),
+                _buildRoadmapItem('Folder-level Nesting', 'Organize your encrypted vault into custom directories.', false),
+                _buildRoadmapItem('Multi-Cloud Support', 'Additional backup options for Dropbox, OneDrive, and iCloud.', false),
+                _buildRoadmapItem('Panic Protocol', 'Instant vault wipe trigger via specific gesture or remote command.', false),
               ],
             ),
           ),
@@ -106,6 +161,51 @@ class AboutScreen extends StatelessWidget {
           ),
           const SizedBox(height: 24),
         ],
+      ),
+    );
+  }
+
+  Widget _buildFeatureItem(dynamic icon, String title, String desc, {bool isFontAwesome = false}) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 24),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 20,
+            child: Center(
+              child: isFontAwesome 
+                ? FaIcon(icon as FaIconData, color: Colors.grey, size: 18)
+                : Icon(icon as IconData, color: Colors.grey, size: 20),
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15)),
+                const SizedBox(height: 4),
+                Text(desc, style: const TextStyle(color: Colors.grey, fontSize: 13, fontWeight: FontWeight.bold)),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSecurityTerm(String term, String definition) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: RichText(
+        text: TextSpan(
+          style: const TextStyle(fontSize: 13, color: Colors.grey, height: 1.4),
+          children: [
+            TextSpan(text: '$term: ', style: const TextStyle(fontWeight: FontWeight.w900, color: Colors.black)),
+            TextSpan(text: definition, style: const TextStyle(fontWeight: FontWeight.bold)),
+          ],
+        ),
       ),
     );
   }

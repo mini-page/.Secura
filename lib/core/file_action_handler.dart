@@ -3,7 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:open_file/open_file.dart';
 import 'package:share_plus/share_plus.dart';
 
-import '../components/file_item_card.dart';
+import '../components/secura_notifications.dart';
+import '../components/file_item_card.dart'; // This contains FileAction
 import '../features/vault/vault_file_model.dart';
 import '../features/vault/vault_provider.dart';
 
@@ -127,11 +128,11 @@ mixin FileActionHandler {
   }
 
   void _showError(BuildContext context, String message) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message), backgroundColor: Colors.red));
+    SecuraNotifications.showError(context, message);
   }
 
   void _showSuccess(BuildContext context, String message) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+    SecuraNotifications.showSuccess(context, message);
   }
 
   Widget _buildRouteOption(

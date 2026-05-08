@@ -115,6 +115,8 @@ class StorageService {
       'themeMode': (await getThemeMode()).name,
       'strict2fa': await getStrict2FA(),
       'autoLock': await getAutoLock(),
+      'salt': await getSalt(),
+      'authHash': await getAuthHash(),
     };
   }
 
@@ -128,6 +130,12 @@ class StorageService {
     }
     if (settings.containsKey('autoLock')) {
       await setAutoLock(settings['autoLock'] as bool);
+    }
+    if (settings.containsKey('salt')) {
+      await saveSalt(settings['salt'] as String);
+    }
+    if (settings.containsKey('authHash')) {
+      await saveAuthHash(settings['authHash'] as String);
     }
   }
 

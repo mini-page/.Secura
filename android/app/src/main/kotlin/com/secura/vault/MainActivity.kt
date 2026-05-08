@@ -1,4 +1,4 @@
-package com.gemini.secura
+package com.secura.vault
 
 import io.flutter.embedding.android.FlutterActivity
 

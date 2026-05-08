@@ -2,14 +2,22 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/services/storage_service.dart';
 import '../auth/user_model.dart';
 import '../../core/services/google_auth_service.dart';
-import '../../core/services/backup_service.dart';
 
 final sessionProvider = NotifierProvider<SessionNotifier, String?>(SessionNotifier.new);
 
 class SessionNotifier extends Notifier<String?> {
   @override
   String? build() {
+    // Register for session invalidation from Google sign out
+    GoogleAuthService.registerSessionInvalidationCallback(_onExternalSignOut);
+    ref.onDispose(() {
+      GoogleAuthService.removeSessionInvalidationCallback(_onExternalSignOut);
+    });
     return null;
+  }
+
+  void _onExternalSignOut() {
+    clearSession();
   }
 
   void setSession(String? session) {
@@ -47,7 +55,12 @@ class UserNotifier extends Notifier<UserModel?> {
       await _storage.saveUser(newUser);
       state = newUser;
     }
-    _triggerBackup();
+  }
+
+  Future<void> logout() async {
+    ref.read(sessionProvider.notifier).clearSession();
+    await GoogleAuthService.signOut();
+    state = null;
   }
 
   Future<void> updateProfile({String? name, String? emoji}) async {
@@ -59,13 +72,5 @@ class UserNotifier extends Notifier<UserModel?> {
   Future<void> saveUser(UserModel user) async {
     await _storage.saveUser(user);
     state = user;
-    _triggerBackup();
-  }
-
-  void _triggerBackup() {
-    final account = GoogleAuthService.currentUser;
-    if (account != null) {
-      BackupService.performBackup(account);
-    }
   }
 }

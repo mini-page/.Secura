@@ -14,11 +14,43 @@ import '../splash/splash_screen.dart';
 import '../../core/theme/theme_provider.dart';
 import 'settings_provider.dart';
 
-class SettingsScreen extends ConsumerWidget {
+import '../../core/services/google_auth_service.dart';
+import '../../core/services/backup_service.dart';
+
+class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<SettingsScreen> createState() => _SettingsScreenState();
+}
+
+class _SettingsScreenState extends ConsumerState<SettingsScreen> {
+  bool _isBackingUp = false;
+
+  Future<void> _handleManualBackup() async {
+    final account = GoogleAuthService.currentUser;
+    if (account == null) {
+      SecuraNotifications.showError(context, 'Please sign in to Google first.');
+      return;
+    }
+
+    setState(() => _isBackingUp = true);
+    try {
+      await BackupService.performBackup(account);
+      if (mounted) {
+        SecuraNotifications.showSuccess(context, 'Cloud backup successful!');
+      }
+    } catch (e) {
+      if (mounted) {
+        SecuraNotifications.showError(context, 'Backup failed: $e');
+      }
+    } finally {
+      if (mounted) setState(() => _isBackingUp = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final vaultState = ref.watch(vaultProvider);
     final user = ref.watch(userProvider);
     final selectedTheme = ref.watch(themeProvider);
@@ -28,9 +60,7 @@ class SettingsScreen extends ConsumerWidget {
     return SafeArea(
       child: ListView(
         padding: const EdgeInsets.all(16),
-        physics: const BouncingScrollPhysics(
-          decelerationRate: ScrollDecelerationRate.fast,
-        ),
+        physics: const BouncingScrollPhysics(),
         children: [
           const AppHeader(title: 'Settings'),
           const SizedBox(height: 16),
@@ -102,6 +132,21 @@ class SettingsScreen extends ConsumerWidget {
           ),
 
           const SizedBox(height: 24),
+          Text('CLOUD SYNC', style: Theme.of(context).textTheme.titleSmall?.copyWith(letterSpacing: 1.5, color: Colors.grey, fontSize: 11, fontWeight: FontWeight.w900)),
+          const SizedBox(height: 12),
+          Card(
+            child: ListTile(
+              leading: Icon(_isBackingUp ? Icons.sync_rounded : Icons.cloud_upload_rounded, color: Theme.of(context).primaryColor),
+              title: const Text('Backup to Google Drive', style: TextStyle(fontWeight: FontWeight.w700)),
+              subtitle: const Text('Save your settings and profile safely', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey)),
+              trailing: _isBackingUp 
+                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                : const Icon(Icons.arrow_forward_ios_rounded, size: 14),
+              onTap: _isBackingUp ? null : _handleManualBackup,
+            ),
+          ),
+
+          const SizedBox(height: 24),
           Text('SECURITY', style: Theme.of(context).textTheme.titleSmall?.copyWith(letterSpacing: 1.5, color: Colors.grey, fontSize: 11, fontWeight: FontWeight.w900)),
           const SizedBox(height: 12),
           AppToggleTile(
@@ -147,6 +192,35 @@ class SettingsScreen extends ConsumerWidget {
                   title: const Text('About Secura', style: TextStyle(fontWeight: FontWeight.w700)),
                   trailing: const Icon(Icons.chevron_right_rounded),
                   onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const AboutScreen())),
+                ),
+                const Divider(height: 1, indent: 56),
+                ListTile(
+                  leading: const Icon(Icons.logout_rounded, color: Colors.orange),
+                  title: const Text('Sign Out', style: TextStyle(color: Colors.orange, fontWeight: FontWeight.w700)),
+                  onTap: () async {
+                    final confirm = await showDialog<bool>(
+                      context: context,
+                      builder: (context) => AlertDialog(
+                        title: const Text('Sign Out?', style: TextStyle(fontWeight: FontWeight.w900)),
+                        content: const Text('Your vault will be locked. You can sign back in to access your files.'),
+                        actions: [
+                          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+                          ElevatedButton(
+                            onPressed: () => Navigator.pop(context, true),
+                            child: const Text('Sign Out'),
+                          ),
+                        ],
+                      ),
+                    );
+                    if (confirm == true) {
+                      await ref.read(userProvider.notifier).logout();
+                      if (!context.mounted) return;
+                      Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
+                        MaterialPageRoute(builder: (_) => const SplashScreen()),
+                        (route) => false,
+                      );
+                    }
+                  },
                 ),
                 const Divider(height: 1, indent: 56),
                 ListTile(
@@ -205,4 +279,3 @@ class SettingsScreen extends ConsumerWidget {
     );
   }
 }
-

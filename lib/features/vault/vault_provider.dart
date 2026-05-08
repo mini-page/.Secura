@@ -5,6 +5,36 @@ import 'vault_file_model.dart';
 
 final fileVaultServiceProvider = Provider((ref) => FileVaultService(ref));
 
+// Provider to track last error for UI feedback
+final lastErrorProvider = NotifierProvider<LastErrorNotifier, String?>(LastErrorNotifier.new);
+
+class LastErrorNotifier extends Notifier<String?> {
+  @override
+  String? build() => null;
+
+  void setError(String? error) {
+    state = error;
+  }
+
+  void clear() {
+    state = null;
+  }
+}
+
+// Provider for operation status
+enum VaultOperationStatus { idle, loading, success, error }
+
+final vaultOperationStatusProvider = NotifierProvider<VaultStatusNotifier, VaultOperationStatus>(VaultStatusNotifier.new);
+
+class VaultStatusNotifier extends Notifier<VaultOperationStatus> {
+  @override
+  VaultOperationStatus build() => VaultOperationStatus.idle;
+
+  void setStatus(VaultOperationStatus status) {
+    state = status;
+  }
+}
+
 final searchQueryProvider = NotifierProvider<SearchQueryNotifier, String>(SearchQueryNotifier.new);
 
 class SearchQueryNotifier extends Notifier<String> {
@@ -27,7 +57,7 @@ final filteredVaultProvider = Provider<AsyncValue<List<VaultFile>>>((ref) {
   return vaultState.whenData((files) {
     if (query.isEmpty) return files;
     return files.where((file) {
-      final name = file.isEncrypted 
+      final name = file.isEncrypted
           ? file.name.replaceAll('.secura', '').toLowerCase()
           : file.name.toLowerCase();
       return name.contains(query);
@@ -51,35 +81,64 @@ class VaultNotifier extends AsyncNotifier<List<VaultFile>> {
     try {
       final files = await _service.listFiles();
       state = AsyncValue.data(files);
+      ref.read(lastErrorProvider.notifier).state = null;
     } catch (e, st) {
       state = AsyncValue.error(e, st);
+      ref.read(lastErrorProvider.notifier).state = e.toString();
     }
   }
 
-  Future<void> addFile(File source, {required bool encrypt}) async {
+  Future<bool> addFile(File source, {required bool encrypt}) async {
+    ref.read(vaultOperationStatusProvider.notifier).state = VaultOperationStatus.loading;
     try {
       await _service.addFile(source, encrypt: encrypt);
       await refresh();
+      ref.read(vaultOperationStatusProvider.notifier).state = VaultOperationStatus.success;
+      return true;
+    } on VaultException catch (e) {
+      ref.read(lastErrorProvider.notifier).state = e.displayMessage;
+      ref.read(vaultOperationStatusProvider.notifier).state = VaultOperationStatus.error;
+      return false;
     } catch (e) {
-      // Handle error
+      ref.read(lastErrorProvider.notifier).state = 'Failed to add file';
+      ref.read(vaultOperationStatusProvider.notifier).state = VaultOperationStatus.error;
+      return false;
     }
   }
 
-  Future<void> deleteFile(VaultFile file) async {
+  Future<bool> deleteFile(VaultFile file) async {
+    ref.read(vaultOperationStatusProvider.notifier).state = VaultOperationStatus.loading;
     try {
       await _service.deleteFile(file);
       await refresh();
+      ref.read(vaultOperationStatusProvider.notifier).state = VaultOperationStatus.success;
+      return true;
+    } on VaultException catch (e) {
+      ref.read(lastErrorProvider.notifier).state = e.displayMessage;
+      ref.read(vaultOperationStatusProvider.notifier).state = VaultOperationStatus.error;
+      return false;
     } catch (e) {
-      // Handle error
+      ref.read(lastErrorProvider.notifier).state = 'Failed to delete file';
+      ref.read(vaultOperationStatusProvider.notifier).state = VaultOperationStatus.error;
+      return false;
     }
   }
 
-  Future<void> encryptExistingFile(VaultFile file) async {
+  Future<bool> encryptExistingFile(VaultFile file) async {
+    ref.read(vaultOperationStatusProvider.notifier).state = VaultOperationStatus.loading;
     try {
       await _service.encryptFile(file);
       await refresh();
+      ref.read(vaultOperationStatusProvider.notifier).state = VaultOperationStatus.success;
+      return true;
+    } on VaultException catch (e) {
+      ref.read(lastErrorProvider.notifier).state = e.displayMessage;
+      ref.read(vaultOperationStatusProvider.notifier).state = VaultOperationStatus.error;
+      return false;
     } catch (e) {
-      // Handle error
+      ref.read(lastErrorProvider.notifier).state = 'Failed to encrypt file';
+      ref.read(vaultOperationStatusProvider.notifier).state = VaultOperationStatus.error;
+      return false;
     }
   }
 }
@@ -107,31 +166,46 @@ class RecycleBinNotifier extends AsyncNotifier<List<VaultFile>> {
     }
   }
 
-  Future<void> restoreFile(VaultFile file) async {
+  Future<bool> restoreFile(VaultFile file) async {
     try {
       await _service.restoreFromRecycleBin(file);
       await refresh();
       _ref.read(vaultProvider.notifier).refresh();
+      return true;
+    } on VaultException catch (e) {
+      ref.read(lastErrorProvider.notifier).state = e.displayMessage;
+      return false;
     } catch (e) {
-      // Handle error
+      ref.read(lastErrorProvider.notifier).state = 'Failed to restore file';
+      return false;
     }
   }
 
-  Future<void> permanentlyDelete(VaultFile file) async {
+  Future<bool> permanentlyDelete(VaultFile file) async {
     try {
       await _service.permanentlyDeleteFile(file);
       await refresh();
+      return true;
+    } on VaultException catch (e) {
+      ref.read(lastErrorProvider.notifier).state = e.displayMessage;
+      return false;
     } catch (e) {
-      // Handle error
+      ref.read(lastErrorProvider.notifier).state = 'Failed to delete file';
+      return false;
     }
   }
 
-  Future<void> emptyBin() async {
+  Future<bool> emptyBin() async {
     try {
       await _service.emptyRecycleBin();
       await refresh();
+      return true;
+    } on VaultException catch (e) {
+      ref.read(lastErrorProvider.notifier).state = e.displayMessage;
+      return false;
     } catch (e) {
-      // Handle error
+      ref.read(lastErrorProvider.notifier).state = 'Failed to empty recycle bin';
+      return false;
     }
   }
 }
