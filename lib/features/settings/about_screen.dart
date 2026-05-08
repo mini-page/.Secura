@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:secura/components/components.dart';
 
 class AboutScreen extends StatelessWidget {
   const AboutScreen({super.key});
@@ -80,19 +81,8 @@ class AboutScreen extends StatelessWidget {
           ),
           const SizedBox(height: 40),
 
-          _buildSectionHeader(context, 'DEVELOPER'),
-          Card(
-            child: ListTile(
-              contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-              leading: CircleAvatar(
-                radius: 24,
-                backgroundColor: Theme.of(context).primaryColor,
-                child: const Icon(Icons.code_rounded, color: Colors.white),
-              ),
-              title: const Text('Secura Core Team', style: TextStyle(fontWeight: FontWeight.w900)),
-              subtitle: const Text('Privacy-first engineering.', style: TextStyle(fontWeight: FontWeight.bold)),
-            ),
-          ),
+          _buildSectionHeader(context, 'CORE TEAM'),
+          const TeamAccordion(),
           const SizedBox(height: 32),
 
           _buildSectionHeader(context, 'SUPPORT THE PROJECT'),

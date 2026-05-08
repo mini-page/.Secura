@@ -78,12 +78,12 @@ class StorageService {
 
   Future<void> saveUser(UserModel user) async {
     final jsonStr = jsonEncode(user.toJson());
-    await saveSecureData('$_userKey${user.phoneNumber}', jsonStr);
-    await saveSecureData('last_logged_in_phone', user.phoneNumber);
+    await saveSecureData('$_userKey${user.email}', jsonStr);
+    await saveSecureData('last_logged_in_email', user.email);
   }
 
-  Future<UserModel?> getUser(String phoneNumber) async {
-    final data = await getSecureData('$_userKey$phoneNumber');
+  Future<UserModel?> getUser(String email) async {
+    final data = await getSecureData('$_userKey$email');
     if (data == null) return null;
     try {
       return UserModel.fromJson(jsonDecode(data));
@@ -93,9 +93,9 @@ class StorageService {
   }
 
   Future<UserModel?> getCurrentUser() async {
-    final phone = await getSecureData('last_logged_in_phone');
-    if (phone == null) return null;
-    return getUser(phone);
+    final email = await getSecureData('last_logged_in_email');
+    if (email == null) return null;
+    return getUser(email);
   }
 
   Future<void> saveThemeMode(ThemeMode mode) async {
@@ -108,6 +108,27 @@ class StorageService {
       (e) => e.name == value,
       orElse: () => ThemeMode.light,
     );
+  }
+
+  Future<Map<String, dynamic>> getAllSettings() async {
+    return {
+      'themeMode': (await getThemeMode()).name,
+      'strict2fa': await getStrict2FA(),
+      'autoLock': await getAutoLock(),
+    };
+  }
+
+  Future<void> restoreSettings(Map<String, dynamic> settings) async {
+    if (settings.containsKey('themeMode')) {
+      final mode = ThemeMode.values.firstWhere((e) => e.name == settings['themeMode'], orElse: () => ThemeMode.light);
+      await saveThemeMode(mode);
+    }
+    if (settings.containsKey('strict2fa')) {
+      await setStrict2FA(settings['strict2fa'] as bool);
+    }
+    if (settings.containsKey('autoLock')) {
+      await setAutoLock(settings['autoLock'] as bool);
+    }
   }
 
   Future<void> clearAll() async {

@@ -37,13 +37,42 @@ class _AuthScreenState extends ConsumerState<AuthScreen> with SingleTickerProvid
   Timer? _lockoutTimer;
   int _secondsRemaining = 0;
 
+  bool _isSettingUpSecurityQuestion = false;
+  bool _isVerifyingSecurityQuestion = false;
+  bool _isVerifyingOldPin = false;
+  bool _oldPinVerified = false;
+  String? _selectedQuestion;
+  final _answerController = TextEditingController();
+
+  final List<String> _securityQuestions = [
+    'What is your favorite character?',
+    'What is your favorite food?',
+    'What was the name of your first pet?',
+    'In what city were you born?',
+  ];
+
   @override
   void initState() {
     super.initState();
-    _message = widget.isSetup ? 'Set your PIN' : 'Enter your PIN';
-    _subMessage = widget.isSetup ? 'Create a 4-digit code to secure your vault' : 'Please enter your current vault PIN';
+    _checkExistingPin();
     _randomizeKeys();
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+  }
+
+  Future<void> _checkExistingPin() async {
+    final hash = await _storage.getAuthHash();
+    if (widget.isSetup && hash != null) {
+      setState(() {
+        _isVerifyingOldPin = true;
+        _message = 'Verify Current PIN';
+        _subMessage = 'Enter your old PIN to authorize change';
+      });
+    } else {
+      setState(() {
+        _message = widget.isSetup ? 'Set your PIN' : 'Enter your PIN';
+        _subMessage = widget.isSetup ? 'Create a 4-digit code to secure your vault' : 'Please enter your current vault PIN';
+      });
+    }
   }
 
   void _randomizeKeys() {
@@ -109,7 +138,34 @@ class _AuthScreenState extends ConsumerState<AuthScreen> with SingleTickerProvid
     if (!mounted) return;
     setState(() => _isVerifying = true);
 
-    if (widget.isSetup) {
+    if (_isVerifyingOldPin && !_oldPinVerified) {
+      final savedSalt = await _storage.getSalt();
+      final savedHash = await _storage.getAuthHash();
+
+      if (savedSalt != null && savedHash != null) {
+        final testKey = EncryptionService.deriveKey(_pin, savedSalt);
+        final testHash = EncryptionService.hashKey(testKey);
+
+        if (testHash == savedHash) {
+          HapticFeedback.mediumImpact();
+          setState(() {
+            _pin = '';
+            _isVerifying = false;
+            _oldPinVerified = true;
+            _isVerifyingOldPin = false;
+            _message = 'Set New PIN';
+            _subMessage = 'Choose a new 4-digit security code';
+          });
+          return;
+        }
+      }
+
+      // Failed old PIN verification
+      _handleFailure();
+      return;
+    }
+
+    if (widget.isSetup || _oldPinVerified) {
       if (_firstPin == null) {
         _firstPin = _pin;
         if (!mounted) return;
@@ -127,11 +183,17 @@ class _AuthScreenState extends ConsumerState<AuthScreen> with SingleTickerProvid
 
           await _storage.saveSalt(salt);
           await _storage.saveAuthHash(hash);
-          ref.read(sessionProvider.notifier).state = key;
+          ref.read(sessionProvider.notifier).setSession(key);
 
           await _logger.logEvent('PIN Established (Zero-Knowledge)');
           if (!mounted) return;
-          _completeAuth();
+          
+          setState(() {
+            _isVerifying = false;
+            _isSettingUpSecurityQuestion = true;
+            _message = 'Security Question';
+            _subMessage = 'Choose a question for account recovery';
+          });
         } else {
           HapticFeedback.heavyImpact();
           if (!mounted) return;
@@ -153,7 +215,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> with SingleTickerProvid
         final testHash = EncryptionService.hashKey(testKey);
 
         if (testHash == savedHash) {
-          ref.read(sessionProvider.notifier).state = testKey;
+          ref.read(sessionProvider.notifier).setSession(testKey);
           await _logger.logEvent('App Unlocked');
           if (!mounted) return;
           _completeAuth();
@@ -161,32 +223,36 @@ class _AuthScreenState extends ConsumerState<AuthScreen> with SingleTickerProvid
         }
       }
 
-      // Fallback or failed login
-      HapticFeedback.vibrate();
-      _failedAttempts++;
+      _handleFailure();
+    }
+  }
 
-      if (_failedAttempts >= 3) {
-        if (!mounted) return;
-        setState(() {
-          _pin = '';
-          _isVerifying = false;
-          _lockoutEndTime = DateTime.now().add(const Duration(seconds: 30));
-          _message = 'Security Lockout';
-          _subMessage = 'Too many failed attempts.';
-        });
-        await _logger.logEvent('Failed Login: Locked Out');
-        _startLockoutTimer();
-      } else {
-        if (!mounted) return;
-        setState(() {
-          _pin = '';
-          _isVerifying = false;
-          _message = 'Incorrect';
-          _subMessage = 'Attempt $_failedAttempts of 3. Try again.';
-          _randomizeKeys();
-        });
-        await _logger.logEvent('Failed Login Attempt');
-      }
+  void _handleFailure() {
+    // Fallback or failed login
+    HapticFeedback.vibrate();
+    _failedAttempts++;
+
+    if (_failedAttempts >= 3) {
+      if (!mounted) return;
+      setState(() {
+        _pin = '';
+        _isVerifying = false;
+        _lockoutEndTime = DateTime.now().add(const Duration(seconds: 30));
+        _message = 'Security Lockout';
+        _subMessage = 'Too many failed attempts.';
+      });
+      _logger.logEvent('Failed Login: Locked Out');
+      _startLockoutTimer();
+    } else {
+      if (!mounted) return;
+      setState(() {
+        _pin = '';
+        _isVerifying = false;
+        _message = 'Incorrect';
+        _subMessage = 'Attempt $_failedAttempts of 3. Try again.';
+        _randomizeKeys();
+      });
+      _logger.logEvent('Failed Login Attempt');
     }
   }
 
@@ -207,6 +273,10 @@ class _AuthScreenState extends ConsumerState<AuthScreen> with SingleTickerProvid
 
   @override
   Widget build(BuildContext context) {
+    if (_isSettingUpSecurityQuestion || _isVerifyingSecurityQuestion) {
+      return _buildSecurityQuestionUI();
+    }
+
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
@@ -259,7 +329,16 @@ class _AuthScreenState extends ConsumerState<AuthScreen> with SingleTickerProvid
                 ),
               ),
               
-              const SizedBox(height: 60),
+              if (!widget.isSetup && !_isLockedOut)
+                Padding(
+                  padding: const EdgeInsets.only(top: 16),
+                  child: TextButton(
+                    onPressed: _startForgotPinFlow,
+                    child: const Text('Forgot PIN?', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12)),
+                  ),
+                ),
+
+              const SizedBox(height: 40),
               Opacity(
                 opacity: _isLockedOut ? 0.3 : 1.0,
                 child: _buildNumpad(),
@@ -270,6 +349,130 @@ class _AuthScreenState extends ConsumerState<AuthScreen> with SingleTickerProvid
         ),
       ),
     );
+  }
+
+  Widget _buildSecurityQuestionUI() {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(_isSettingUpSecurityQuestion ? 'Setup Recovery' : 'Recover PIN'),
+        centerTitle: true,
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              _isSettingUpSecurityQuestion 
+                ? 'Choose a question you\'ll remember' 
+                : 'Answer your security question',
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
+            ),
+            const SizedBox(height: 24),
+            if (_isSettingUpSecurityQuestion)
+              DropdownButtonFormField<String>(
+                value: _selectedQuestion,
+                decoration: InputDecoration(
+                  labelText: 'Security Question',
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+                ),
+                items: _securityQuestions.map((q) => DropdownMenuItem(value: q, child: Text(q, style: const TextStyle(fontSize: 14)))).toList(),
+                onChanged: (v) => setState(() => _selectedQuestion = v),
+              )
+            else
+              Text(
+                _selectedQuestion ?? 'Loading question...',
+                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+            const SizedBox(height: 24),
+            TextField(
+              controller: _answerController,
+              decoration: InputDecoration(
+                labelText: 'Your Answer',
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+              ),
+            ),
+            const Spacer(),
+            SizedBox(
+              width: double.infinity,
+              height: 56,
+              child: ElevatedButton(
+                onPressed: _saveOrVerifySecurityQuestion,
+                style: ElevatedButton.styleFrom(
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  backgroundColor: Theme.of(context).primaryColor,
+                  foregroundColor: Colors.white,
+                ),
+                child: Text(_isSettingUpSecurityQuestion ? 'Finish Setup' : 'Verify Answer', style: const TextStyle(fontWeight: FontWeight.w900)),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _startForgotPinFlow() async {
+    final user = await _storage.getCurrentUser();
+    if (user?.securityQuestion == null) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No recovery method set for this account.')),
+      );
+      return;
+    }
+
+    setState(() {
+      _isVerifyingSecurityQuestion = true;
+      _selectedQuestion = user!.securityQuestion;
+      _answerController.clear();
+    });
+  }
+
+  Future<void> _saveOrVerifySecurityQuestion() async {
+    if (_answerController.text.isEmpty) return;
+
+    if (_isSettingUpSecurityQuestion) {
+      if (_selectedQuestion == null) return;
+      
+      final user = ref.read(userProvider);
+      if (user != null) {
+        final updatedUser = user.copyWith(
+          securityQuestion: _selectedQuestion,
+          securityAnswerHash: EncryptionService.hashKey(_answerController.text.trim().toLowerCase()),
+        );
+        await ref.read(userProvider.notifier).saveUser(updatedUser);
+        await _logger.logEvent('Security Question Configured');
+        
+        if (mounted) {
+          setState(() {
+            _isVerifying = false;
+            _isSettingUpSecurityQuestion = false;
+          });
+          _completeAuth();
+        }
+      }
+    } else {
+      final user = await _storage.getCurrentUser();
+      if (user != null) {
+        final answerHash = EncryptionService.hashKey(_answerController.text.trim().toLowerCase());
+        if (answerHash == user.securityAnswerHash) {
+          setState(() {
+            _isVerifyingSecurityQuestion = false;
+            _oldPinVerified = true;
+            _isVerifyingOldPin = false;
+            _message = 'Reset PIN';
+            _subMessage = 'Choose a new 4-digit security code';
+          });
+          // Also set isSetup to true so they can set a new PIN
+          // Since we can't change widget.isSetup, we use _oldPinVerified flag
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Incorrect answer. Please try again.')),
+          );
+        }
+      }
+    }
   }
 
   Widget _buildPinDisplay() {

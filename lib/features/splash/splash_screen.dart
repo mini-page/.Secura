@@ -3,6 +3,8 @@ import '../../core/services/storage_service.dart';
 import '../onboarding/onboarding_screen.dart';
 import '../auth/auth_screen.dart';
 
+import '../../core/services/google_auth_service.dart';
+
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
 
@@ -22,6 +24,9 @@ class _SplashScreenState extends State<SplashScreen> {
   Future<void> _navigateToNext() async {
     await Future.delayed(const Duration(milliseconds: 800));
     if (!mounted) return;
+
+    // Refresh Google Session
+    await GoogleAuthService.signInSilently();
 
     final authHash = await _storage.getAuthHash();
     final user = await _storage.getCurrentUser();

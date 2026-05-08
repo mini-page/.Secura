@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../components/components.dart';
-import '../auth/phone_auth_screen.dart';
+import '../auth/google_auth_screen.dart';
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
@@ -34,6 +34,12 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       'Only you can decrypt your files with PIN/biometric-secured access.',
       Icons.key_rounded,
     ),
+    (
+      'Important Warning',
+      'Local Storage Only',
+      'Files imported in Secura are safe, but uninstalling without recovering files leads to permanent loss. They are NOT recoverable.',
+      Icons.warning_amber_rounded,
+    ),
   ];
 
   @override
@@ -57,13 +63,24 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         if (i == 0)
                           Image.asset('assets/app_brand.png', width: 128, height: 128)
                         else
-                          CircleAvatar(radius: 64, child: Icon(page.$4, size: 56)),
+                          CircleAvatar(
+                            radius: 64, 
+                            backgroundColor: i == 3 ? Colors.orange.withValues(alpha: 0.1) : null,
+                            child: Icon(page.$4, size: 56, color: i == 3 ? Colors.orange : null),
+                          ),
                         const SizedBox(height: 24),
-                        Text(page.$1, style: Theme.of(context).textTheme.headlineMedium, textAlign: TextAlign.center),
+                        Text(
+                          page.$1, 
+                          style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                            color: i == 3 ? Colors.orange : null,
+                            fontWeight: FontWeight.w900,
+                          ), 
+                          textAlign: TextAlign.center,
+                        ),
                         const SizedBox(height: 12),
                         Text(page.$2, style: Theme.of(context).textTheme.titleLarge, textAlign: TextAlign.center),
                         const SizedBox(height: 16),
-                        Text(page.$3, textAlign: TextAlign.center),
+                        Text(page.$3, textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.bold)),
                       ],
                     );
                   },
@@ -76,7 +93,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 onPressed: _index == _pages.length - 1
                     ? () {
                         Navigator.of(context).pushReplacement(
-                          MaterialPageRoute(builder: (_) => const PhoneAuthScreen()),
+                          MaterialPageRoute(builder: (_) => const GoogleAuthScreen()),
                         );
                       }
                     : () => _controller.nextPage(duration: const Duration(milliseconds: 220), curve: Curves.easeOut),

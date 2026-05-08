@@ -9,20 +9,27 @@ dependencies:
   flutter:
     sdk: flutter
   cupertino_icons: ^1.0.8
-  flutter_riverpod: ^2.5.1
-  file_picker: ^8.0.0
+  flutter_riverpod: ^3.3.1
+  file_picker: ^11.0.2
   path_provider: ^2.1.3
   path: ^1.9.0
   encrypt: ^5.0.3
   flutter_secure_storage: ^10.0.0
   secure_application: ^4.1.0
   share_plus: ^12.0.2
-  gal: 2.0.0
-  open_file: 3.5.10
+  gal: ^2.3.2
+  open_file: ^3.5.11
   google_fonts: ^8.1.0
   animations: ^2.2.0
   crypto: ^3.0.7
   permission_handler: ^12.0.1
+  font_awesome_flutter: ^11.0.0
+  url_launcher: ^6.3.0
+  google_sign_in: ^7.2.0
+  googleapis: ^16.0.0
+  googleapis_auth: ^2.3.0
+  http: ^1.6.0
+  extension_google_sign_in_as_googleapis_auth: ^3.0.0
 
 
 dev_dependencies:
@@ -41,3 +48,8 @@ flutter:
   uses-material-design: true
   assets:
     - assets/app_brand.png
+    - assets/UmangGupta.png
+    - assets/VineetVRao.png
+    - assets/VipulKumar.png
+    - assets/TribhuvanPSingh.png
+    - assets/VaishnavendraDDiwvedi.png

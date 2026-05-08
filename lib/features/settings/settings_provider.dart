@@ -1,15 +1,24 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/services/storage_service.dart';
+import '../../core/services/google_auth_service.dart';
+import '../../core/services/backup_service.dart';
 
 final _storage = StorageService();
 
-final strict2FAProvider = StateNotifierProvider<Strict2FANotifier, bool>((ref) {
-  return Strict2FANotifier();
-});
+void _triggerBackup() {
+  final account = GoogleAuthService.currentUser;
+  if (account != null) {
+    BackupService.performBackup(account);
+  }
+}
 
-class Strict2FANotifier extends StateNotifier<bool> {
-  Strict2FANotifier() : super(false) {
+final strict2FAProvider = NotifierProvider<Strict2FANotifier, bool>(Strict2FANotifier.new);
+
+class Strict2FANotifier extends Notifier<bool> {
+  @override
+  bool build() {
     _load();
+    return false;
   }
 
   Future<void> _load() async {
@@ -19,16 +28,17 @@ class Strict2FANotifier extends StateNotifier<bool> {
   Future<void> toggle(bool value) async {
     await _storage.setStrict2FA(value);
     state = value;
+    _triggerBackup();
   }
 }
 
-final autoLockProvider = StateNotifierProvider<AutoLockNotifier, bool>((ref) {
-  return AutoLockNotifier();
-});
+final autoLockProvider = NotifierProvider<AutoLockNotifier, bool>(AutoLockNotifier.new);
 
-class AutoLockNotifier extends StateNotifier<bool> {
-  AutoLockNotifier() : super(false) {
+class AutoLockNotifier extends Notifier<bool> {
+  @override
+  bool build() {
     _load();
+    return false;
   }
 
   Future<void> _load() async {
@@ -38,5 +48,6 @@ class AutoLockNotifier extends StateNotifier<bool> {
   Future<void> toggle(bool value) async {
     await _storage.setAutoLock(value);
     state = value;
+    _triggerBackup();
   }
 }

@@ -54,8 +54,8 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
           TextField(
             enabled: false,
             decoration: InputDecoration(
-              labelText: 'Phone Number',
-              hintText: user?.phoneNumber ?? '',
+              labelText: 'Email Address',
+              hintText: user?.email ?? '',
               filled: true,
               fillColor: cardColor.withValues(alpha: 0.5),
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),

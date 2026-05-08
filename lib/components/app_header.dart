@@ -69,7 +69,7 @@ class _AppHeaderState extends ConsumerState<AppHeader> with SingleTickerProvider
                     child: TextField(
                       controller: _searchController,
                       autofocus: _isSearching,
-                      onChanged: (value) => ref.read(searchQueryProvider.notifier).state = value,
+                      onChanged: (value) => ref.read(searchQueryProvider.notifier).updateQuery(value),
                       style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18),
                       decoration: InputDecoration(
                         hintText: 'Search',
@@ -94,7 +94,7 @@ class _AppHeaderState extends ConsumerState<AppHeader> with SingleTickerProvider
                     onPressed: () {
                       setState(() => _isSearching = false);
                       _searchController.clear();
-                      ref.read(searchQueryProvider.notifier).state = '';
+                      ref.read(searchQueryProvider.notifier).clear();
                     },
                     icon: const Icon(Icons.close_rounded),
                     style: IconButton.styleFrom(

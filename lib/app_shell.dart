@@ -55,7 +55,7 @@ class _VaultShellState extends ConsumerState<VaultShell> with WidgetsBindingObse
       }
 
       if (shouldLock) {
-        ref.read(sessionProvider.notifier).state = null; // Clear key
+        ref.read(sessionProvider.notifier).clearSession();
         Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
           MaterialPageRoute(builder: (_) => const AuthScreen(isSetup: false)),
           (route) => false,

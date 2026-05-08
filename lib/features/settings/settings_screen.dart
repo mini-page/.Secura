@@ -54,7 +54,7 @@ class SettingsScreen extends ConsumerWidget {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(user?.name ?? 'Secura User', style: Theme.of(context).textTheme.titleLarge),
-                              Text(user?.phoneNumber ?? 'No Identity Attached', style: const TextStyle(color: Colors.grey, fontSize: 13, fontWeight: FontWeight.bold)),
+                              Text(user?.email ?? 'No Identity Attached', style: const TextStyle(color: Colors.grey, fontSize: 13, fontWeight: FontWeight.bold)),
                             ],
                           ),
                         ),

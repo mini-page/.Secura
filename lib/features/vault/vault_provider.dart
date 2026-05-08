@@ -5,7 +5,20 @@ import 'vault_file_model.dart';
 
 final fileVaultServiceProvider = Provider((ref) => FileVaultService(ref));
 
-final searchQueryProvider = StateProvider<String>((ref) => '');
+final searchQueryProvider = NotifierProvider<SearchQueryNotifier, String>(SearchQueryNotifier.new);
+
+class SearchQueryNotifier extends Notifier<String> {
+  @override
+  String build() => '';
+
+  void updateQuery(String query) {
+    state = query;
+  }
+
+  void clear() {
+    state = '';
+  }
+}
 
 final filteredVaultProvider = Provider<AsyncValue<List<VaultFile>>>((ref) {
   final vaultState = ref.watch(vaultProvider);
@@ -22,21 +35,15 @@ final filteredVaultProvider = Provider<AsyncValue<List<VaultFile>>>((ref) {
   });
 });
 
-final vaultProvider = StateNotifierProvider<VaultNotifier, AsyncValue<List<VaultFile>>>((ref) {
-  final service = ref.watch(fileVaultServiceProvider);
-  return VaultNotifier(service);
-});
+final vaultProvider = AsyncNotifierProvider<VaultNotifier, List<VaultFile>>(VaultNotifier.new);
 
-final recycleBinProvider = StateNotifierProvider<RecycleBinNotifier, AsyncValue<List<VaultFile>>>((ref) {
-  final service = ref.watch(fileVaultServiceProvider);
-  return RecycleBinNotifier(service, ref);
-});
+class VaultNotifier extends AsyncNotifier<List<VaultFile>> {
+  late final FileVaultService _service;
 
-class VaultNotifier extends StateNotifier<AsyncValue<List<VaultFile>>> {
-  final FileVaultService _service;
-
-  VaultNotifier(this._service) : super(const AsyncValue.loading()) {
-    refresh();
+  @override
+  Future<List<VaultFile>> build() async {
+    _service = ref.watch(fileVaultServiceProvider);
+    return _service.listFiles();
   }
 
   Future<void> refresh() async {
@@ -44,8 +51,8 @@ class VaultNotifier extends StateNotifier<AsyncValue<List<VaultFile>>> {
     try {
       final files = await _service.listFiles();
       state = AsyncValue.data(files);
-    } catch (e) {
-      state = AsyncValue.error(e, StackTrace.current);
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
     }
   }
 
@@ -77,12 +84,17 @@ class VaultNotifier extends StateNotifier<AsyncValue<List<VaultFile>>> {
   }
 }
 
-class RecycleBinNotifier extends StateNotifier<AsyncValue<List<VaultFile>>> {
-  final FileVaultService _service;
-  final Ref _ref;
+final recycleBinProvider = AsyncNotifierProvider<RecycleBinNotifier, List<VaultFile>>(RecycleBinNotifier.new);
 
-  RecycleBinNotifier(this._service, this._ref) : super(const AsyncValue.loading()) {
-    refresh();
+class RecycleBinNotifier extends AsyncNotifier<List<VaultFile>> {
+  late final FileVaultService _service;
+  late final Ref _ref;
+
+  @override
+  Future<List<VaultFile>> build() async {
+    _service = ref.watch(fileVaultServiceProvider);
+    _ref = ref;
+    return _service.listRecycleBin();
   }
 
   Future<void> refresh() async {
@@ -90,8 +102,8 @@ class RecycleBinNotifier extends StateNotifier<AsyncValue<List<VaultFile>>> {
     try {
       final files = await _service.listRecycleBin();
       state = AsyncValue.data(files);
-    } catch (e) {
-      state = AsyncValue.error(e, StackTrace.current);
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
     }
   }
 

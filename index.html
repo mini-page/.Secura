@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Secura - Privacy Policy & Terms of Service</title>
+    <style>
+        :root {
+            --primary: #575992;
+            --text: #333;
+            --bg: #f8f9fa;
+            --card: #ffffff;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            line-height: 1.6;
+            color: var(--text);
+            background-color: var(--bg);
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 800px;
+            margin: 40px auto;
+            padding: 40px;
+            background: var(--card);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+            border-radius: 24px;
+        }
+        header {
+            text-align: center;
+            margin-bottom: 50px;
+        }
+        .logo {
+            width: 80px;
+            height: 80px;
+            margin-bottom: 20px;
+        }
+        h1 { color: var(--primary); font-weight: 900; letter-spacing: -1px; }
+        h2 { color: var(--primary); border-bottom: 2px solid #eee; padding-bottom: 10px; margin-top: 40px; }
+        h3 { color: #555; }
+        p, li { font-size: 16px; color: #555; }
+        .highlight {
+            background: #fff3cd;
+            padding: 15px;
+            border-left: 5px solid #ffc107;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        footer {
+            text-align: center;
+            margin-top: 40px;
+            font-size: 12px;
+            color: #999;
+            padding-bottom: 40px;
+        }
+        .nav-links {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .nav-links a {
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: bold;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <img src="https://raw.githubusercontent.com/umang-gupta-dev/Secura/main/assets/app_brand.png" alt="Secura Logo" class="logo" onerror="this.src='https://via.placeholder.com/80?text=S'">
+        <h1>Secura</h1>
+        <p>Privacy-First File Vault & Encryption</p>
+    </header>
+
+    <div class="nav-links">
+        <a href="#privacy">Privacy Policy</a>
+        <a href="#terms">Terms of Service</a>
+        <a href="#data-handling">Data Handling</a>
+    </div>
+
+    <section id="privacy">
+        <h2>Privacy Policy</h2>
+        <p>Last Updated: May 7, 2026</p>
+        
+        <p>Secura ("we", "us", or "the app") is committed to protecting your privacy. This policy explains how we handle your information when you use our mobile application.</p>
+
+        <h3>1. Information Collection</h3>
+        <p>Secura follows a <strong>minimal data collection</strong> principle:</p>
+        <ul>
+            <li><strong>Authentication:</strong> We use Google Sign-In to verify your identity. We only store your email address and display name locally and in a hidden backup file.</li>
+            <li><strong>Usage Data:</strong> We do not track your activity, your files, or your location. All logs are stored strictly on your device for your own auditing purposes.</li>
+        </ul>
+
+        <h3>2. Google Drive Permissions (App Data Folder)</h3>
+        <p>Secura requests access to the <code>drive.appdata</code> scope. This is a <strong>private, hidden folder</strong> on your Google Drive that only Secura can see.</p>
+        <ul>
+            <li><strong>What is stored:</strong> A small JSON file containing your app settings (theme, security toggles) and your profile name.</li>
+            <li><strong>What is NOT stored:</strong> Your encrypted files, your vault keys, or your PIN. We never upload your actual vault data to the cloud.</li>
+            <li><strong>Purpose:</strong> This allows you to restore your settings and profile when you log in on a new device.</li>
+        </ul>
+
+        <h3>3. Encryption & Local Storage</h3>
+        <p>All files you import into Secura are encrypted using <strong>AES-256-GCM</strong> encryption. The encryption keys are derived from your PIN using zero-knowledge protocols. We never have access to your PIN or your decrypted files.</p>
+    </section>
+
+    <section id="data-handling">
+        <h2>Data Handling Transparency</h2>
+        <div class="highlight">
+            <strong>Critical Warning:</strong> Secura is a "Local-First" application. We do not maintain a central server. If you uninstall the app without exporting your files, <strong>your data is permanently deleted and cannot be recovered by us.</strong>
+        </div>
+        
+        <h3>Zero-Knowledge Architecture</h3>
+        <p>We use a zero-knowledge security model. This means:</p>
+        <ul>
+            <li>Your PIN is never sent to any server.</li>
+            <li>Your encryption keys are stored only in your device's hardware-backed Secure Storage.</li>
+            <li>If you forget your PIN and your Security Question answer, we cannot help you recover your files.</li>
+        </ul>
+    </section>
+
+    <section id="terms">
+        <h2>Terms of Service</h2>
+        
+        <h3>1. Acceptance of Terms</h3>
+        <p>By using Secura, you agree to these terms. If you do not agree, please do not use the application.</p>
+
+        <h3>2. User Responsibility</h3>
+        <p>You are solely responsible for:</p>
+        <ul>
+            <li>Maintaining the confidentiality of your PIN.</li>
+            <li>Remembering the answer to your Security Question.</li>
+            <li>Backing up (exporting) your files before uninstalling the app or factory resetting your device.</li>
+        </ul>
+
+        <h3>3. Limitation of Liability</h3>
+        <p>Secura is provided "as is" without any warranties. We are not liable for any data loss resulting from forgotten PINs, app uninstallation, hardware failure, or unauthorized access to your device.</p>
+
+        <h3>4. Prohibited Uses</h3>
+        <p>You may not use Secura to store illegal material or engage in activities that violate local or international laws.</p>
+    </section>
+
+    <footer>
+        <p>&copy; 2026 Secura. Built for privacy and security.</p>
+    </footer>
+</div>
+
+</body>
+</html>
