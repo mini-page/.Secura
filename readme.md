@@ -87,7 +87,7 @@ lib/
 | **Algorithm** | AES-256-GCM |
 | **IV Size** | 12 bytes (96-bit) |
 | **Key Derivation** | PBKDF2-HMAC-SHA256 |
-| **Iterations** | 600,000 (OWASP recommended) |
+| **Iterations** | 10,000 (Simple) / 600,000 (Advanced) |
 | **Salt Size** | 32 bytes (256-bit) |
 | **Key Size** | 32 bytes (256-bit) |
 
@@ -221,7 +221,8 @@ lib/
 Responsible for all cryptographic operations:
 
 - **generateSalt()**: Create cryptographically secure random salt (32 bytes)
-- **deriveKey(pin, salt)**: PBKDF2 key derivation with 600k iterations
+- **deriveKey(pin, salt, iterations)**: PBKDF2 key derivation with configurable iterations
+- **deriveKeyWithMode(pin, salt, mode)**: Derive key using simple (10k) or advanced (600k) mode
 - **hashKey(key)**: Double SHA-256 for verification hash
 - **hashString(input)**: SHA-256 for security answers
 - **encryptBytes(data, key)**: AES-256-GCM encryption with unique IV
@@ -239,6 +240,7 @@ Manages secure local storage using Flutter Secure Storage:
 - **saveThemeMode() / getThemeMode()**: Theme preference
 - **setStrict2FA() / getStrict2FA()**: 2FA setting
 - **setAutoLock() / getAutoLock()**: Auto-lock setting
+- **setEncryptionMode() / getEncryptionMode()**: Simple or advanced encryption
 - **getAllSettings()**: Export all settings for backup
 - **restoreSettings()**: Restore from backup
 
@@ -255,6 +257,19 @@ Handles all file operations in the vault:
 - **listFiles()**: Get all vault files
 - **listRecycleBin()**: Get deleted files
 - **cleanupTempFiles()**: Clean up temp decrypted files
+
+### KeyCacheService (`lib/core/services/key_cache_service.dart`)
+
+In-memory key caching for fast access:
+- **cacheKey()**: Cache derived key in memory
+- **clearCache()**: Clear key when app goes to background
+- **cachedKey / hasKey**: Check if key is available
+
+### MigrationService (`lib/core/services/migration_service.dart`)
+
+Handles encryption mode switching:
+- **getCurrentMode()**: Get current encryption mode
+- **quickSwitchMode()**: Switch between simple/advanced mode
 
 ### BackupService (`lib/core/services/backup_service.dart`)
 
@@ -292,6 +307,7 @@ Handles Google Sign-In integration:
 | `themeProvider` | StateNotifierProvider | App theme mode |
 | `strict2FAProvider` | StateNotifierProvider | 2FA setting |
 | `autoLockProvider` | StateNotifierProvider | Auto-lock setting |
+| `encryptionModeProvider` | NotifierProvider | Simple (10k) or advanced (600k) iterations |
 | `lastErrorProvider` | StateProvider | Last error for UI feedback |
 | `vaultOperationStatusProvider` | StateProvider | Operation loading state |
 
@@ -529,8 +545,15 @@ Create `android/app/google-services.json` from Firebase/Google Cloud Console for
 
 1. **PBKDF2 Key Derivation**
    - Upgraded from simple SHA-256 loop to PBKDF2-HMAC-SHA256
-   - Increased iterations from 10,000 to 600,000 (OWASP recommended)
-   - Added memory-hard key derivation for GPU resistance
+   - Two modes: Simple (10k iterations - fast) and Advanced (600k iterations - secure)
+   - Default to Simple mode for fast daily use
+   - Advanced mode available as "Coming Soon" feature for maximum security
+
+2. **Encryption Modes**
+   - **Simple Mode**: 10,000 iterations - fast app unlock and file operations
+   - **Advanced Mode**: 600,000 iterations - OWASP recommended, for maximum security
+   - Key caching in memory for performance, cleared on app background
+   - Settings UI shows "Advanced Encryption" with Coming Soon badge
 
 2. **Encrypted Cloud Backup**
    - Backup data now encrypted before upload

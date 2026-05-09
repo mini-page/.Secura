@@ -60,6 +60,32 @@ lib/
 - Add widget tests for new UI components in the `test/` directory.
 - Unit test business logic (providers/services) to ensure security protocols are correctly implemented.
 
+## Error Prevention & Pre-Flight Checks
+
+To maintain high development velocity and avoid common compilation errors, always verify the following before finalizing any code change:
+
+### 1. Constant Expression Validation
+- **Pitfall:** Using `const` on widgets that depend on dynamic state, providers, or non-constant lists.
+- **Check:** Ensure that `LockerScreen()`, `TeamScreen()`, and any screens using `ConsumerWidget` or `watch/read` are **NOT** instantiated with `const` in `app_shell.dart` or navigation calls.
+
+### 2. Comprehensive Import Audits
+- **Pitfall:** Adding new components or screens and forgetting to update the imports in the destination file.
+- **Check:** When using `PrimaryCtaButton`, `LockerScreen`, or `SecuraNotifications`, double-check that `../../components/components.dart` or the relevant feature file is imported.
+
+### 3. Widget Parameter Verification
+- **Pitfall:** Using invalid parameters on common widgets (e.g., adding `padding` to a `SizedBox` instead of wrapping it in a `Padding` widget).
+- **Check:** Verify widget properties against the Flutter API. Use `Container` or `Padding` for spacing/inset needs, and `SizedBox` only for fixed dimensions.
+
+### 4. Code Integrity & Hygiene
+- **Pitfall:** Accidental code duplication or leaving "stray" UI elements at the end of a file during complex refactors.
+- **Check:** Always perform a final "surgical read" of the entire file after a `replace` call to ensure no duplicate blocks or broken syntax remain.
+
+### 5. Plugin & Native Synchronization
+- **Pitfall:** Encountering `MissingPluginException` after refactoring services or adding dependencies.
+- **Check:** If a native-backed plugin (like `path_provider` or `local_auth`) fails, recommend a full **Cold Boot** (`flutter clean && flutter run`) instead of relying on Hot Reload.
+
+---
+
 ## Roadmap & Next Steps
 1. **Authentication:** Integrate Supabase Auth for user management.
 2. **Persistence:** Implement Isar or Hive for local file metadata storage.

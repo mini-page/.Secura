@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/services/file_vault_service.dart';
 import 'vault_file_model.dart';
@@ -140,16 +141,22 @@ class VaultNotifier extends AsyncNotifier<List<VaultFile>> {
 
   @override
   Future<List<VaultFile>> build() async {
-    return service.listFiles();
+    try {
+      return await service.listFiles();
+    } catch (e) {
+      // Return empty list if storage is unavailable (web/emulator hot reload)
+      return [];
+    }
   }
 
   Future<void> refresh() async {
-    state = const AsyncValue.loading();
     try {
       final files = await service.listFiles();
+      debugPrint('Refreshing vault: ${files.length} files found');
       state = AsyncValue.data(files);
       ref.read(lastErrorProvider.notifier).state = null;
     } catch (e, st) {
+      debugPrint('Error refreshing vault: $e');
       state = AsyncValue.error(e, st);
       ref.read(lastErrorProvider.notifier).state = e.toString();
     }
@@ -159,14 +166,20 @@ class VaultNotifier extends AsyncNotifier<List<VaultFile>> {
     ref.read(vaultOperationStatusProvider.notifier).state = VaultOperationStatus.loading;
     try {
       await service.addFile(source, encrypt: encrypt);
-      await refresh();
+      
+      // CRITICAL: Ensure we refresh the state after adding
+      final files = await service.listFiles();
+      state = AsyncValue.data(files);
+      
       ref.read(vaultOperationStatusProvider.notifier).state = VaultOperationStatus.success;
       return true;
     } on VaultException catch (e) {
+      debugPrint('VaultException adding file: ${e.message}');
       ref.read(lastErrorProvider.notifier).state = e.displayMessage;
       ref.read(vaultOperationStatusProvider.notifier).state = VaultOperationStatus.error;
       return false;
-    } catch (e) {
+    } catch (e, st) {
+      debugPrint('Error adding file: $e\n$st');
       ref.read(lastErrorProvider.notifier).state = 'Failed to add file';
       ref.read(vaultOperationStatusProvider.notifier).state = VaultOperationStatus.error;
       return false;

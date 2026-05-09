@@ -31,15 +31,39 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
       body: ListView(
         padding: const EdgeInsets.all(24),
         children: [
-          Center(
-            child: CircleAvatar(
-              radius: 50,
-              backgroundColor: Theme.of(context).primaryColor.withValues(alpha: 0.1),
-              child: Text(user?.profileEmoji ?? '👤', style: const TextStyle(fontSize: 40)),
+          // User Identity Card (Matching Google Sync style)
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Row(
+                children: [
+                  CircleAvatar(
+                    radius: 28,
+                    backgroundColor: Theme.of(context).primaryColor.withValues(alpha: 0.1),
+                    child: Text(user?.profileEmoji ?? '👤', style: const TextStyle(fontSize: 24)),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          user?.name ?? 'Secura User',
+                          style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16),
+                        ),
+                        Text(
+                          user?.email ?? 'No Identity Attached',
+                          style: TextStyle(fontSize: 12, color: Theme.of(context).hintColor),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
           const SizedBox(height: 32),
-          Text('VAULT IDENTITY', style: Theme.of(context).textTheme.titleSmall?.copyWith(letterSpacing: 1.5, color: Colors.grey)),
+          Text('VAULT IDENTITY', style: Theme.of(context).textTheme.titleSmall?.copyWith(letterSpacing: 1.5, color: Theme.of(context).hintColor, fontSize: 11, fontWeight: FontWeight.w900)),
           const SizedBox(height: 12),
           TextField(
             controller: _nameController,

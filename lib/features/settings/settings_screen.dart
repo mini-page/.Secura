@@ -9,13 +9,12 @@ import '../auth/profile_edit_screen.dart';
 import 'about_screen.dart';
 import 'recycle_bin_screen.dart';
 import 'activity_logs_screen.dart';
+import 'google_sync_screen.dart';
+import 'team_screen.dart';
 import '../../core/services/storage_service.dart';
 import '../splash/splash_screen.dart';
 import '../../core/theme/theme_provider.dart';
 import 'settings_provider.dart';
-
-import '../../core/services/google_auth_service.dart';
-import '../../core/services/backup_service.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -25,30 +24,6 @@ class SettingsScreen extends ConsumerStatefulWidget {
 }
 
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
-  bool _isBackingUp = false;
-
-  Future<void> _handleManualBackup() async {
-    final account = GoogleAuthService.currentUser;
-    if (account == null) {
-      SecuraNotifications.showError(context, 'Please sign in to Google first.');
-      return;
-    }
-
-    setState(() => _isBackingUp = true);
-    try {
-      await BackupService.performBackup(account);
-      if (mounted) {
-        SecuraNotifications.showSuccess(context, 'Cloud backup successful!');
-      }
-    } catch (e) {
-      if (mounted) {
-        SecuraNotifications.showError(context, 'Backup failed: $e');
-      }
-    } finally {
-      if (mounted) setState(() => _isBackingUp = false);
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final vaultState = ref.watch(vaultProvider);
@@ -62,40 +37,87 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         padding: const EdgeInsets.all(16),
         physics: const BouncingScrollPhysics(),
         children: [
-          const AppHeader(title: 'Settings'),
+          const AppHeader(title: 'Settings', showSearch: false),
           const SizedBox(height: 16),
 
+          // Profile & Cloud Sync Card merged
           ShimmerCard(
             child: Card(
               child: Column(
                 children: [
+                  // Profile Section
                   Padding(
                     padding: const EdgeInsets.all(20),
-                    child: Row(
+                    child: Column(
                       children: [
-                        CircleAvatar(
-                          radius: 32,
-                          backgroundColor: Theme.of(context).primaryColor.withValues(alpha: 0.1),
-                          child: Text(user?.profileEmoji ?? '👤', style: const TextStyle(fontSize: 24)),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(user?.name ?? 'Secura User', style: Theme.of(context).textTheme.titleLarge),
-                              Text(user?.email ?? 'No Identity Attached', style: TextStyle(color: Theme.of(context).hintColor, fontSize: 13, fontWeight: FontWeight.bold)),
-                            ],
-                          ),
-                        ),
-                        IconButton(
-                          onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ProfileEditScreen())),
-                          icon: const Icon(Icons.edit_outlined, size: 20),
+                        Row(
+                          children: [
+                            CircleAvatar(
+                              radius: 32,
+                              backgroundColor: Theme.of(context).primaryColor.withValues(alpha: 0.1),
+                              child: Text(user?.profileEmoji ?? '👤', style: const TextStyle(fontSize: 24)),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(user?.name ?? 'Secura User', style: Theme.of(context).textTheme.titleLarge),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    user?.email ?? 'No Identity Attached',
+                                    style: TextStyle(color: Theme.of(context).hintColor, fontSize: 13, fontWeight: FontWeight.bold),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ],
+                              ),
+                            ),
+                            IconButton(
+                              onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ProfileEditScreen())),
+                              icon: Icon(Icons.edit_outlined, size: 16, color: Theme.of(context).hintColor),
+                              padding: const EdgeInsets.all(8),
+                              constraints: const BoxConstraints(),
+                            ),
+                          ],
                         ),
                       ],
                     ),
                   ),
-                  const Divider(height: 1),
+
+                  // Quick Cloud Actions - merged into profile card
+                  Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: _QuickActionTile(
+                            icon: Icons.cloud_upload_rounded,
+                            label: 'Backup',
+                            onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const GoogleSyncScreen())),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: _QuickActionTile(
+                            icon: Icons.cloud_download_rounded,
+                            label: 'Restore',
+                            onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const GoogleSyncScreen())),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: _QuickActionTile(
+                            icon: Icons.sync_rounded,
+                            label: 'Sync',
+                            onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const GoogleSyncScreen())),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  // Stats section
                   vaultState.when(
                     data: (files) {
                       final encryptedCount = files.where((f) => f.isEncrypted).length;
@@ -122,68 +144,78 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           ),
 
           const SizedBox(height: 24),
-          Text('APPEARANCE', style: Theme.of(context).textTheme.titleSmall?.copyWith(letterSpacing: 1.5, color: Theme.of(context).hintColor, fontSize: 11, fontWeight: FontWeight.w900)),
+          Text('APPEARANCE & THEME', style: Theme.of(context).textTheme.titleSmall?.copyWith(letterSpacing: 1.5, color: Theme.of(context).hintColor, fontSize: 11, fontWeight: FontWeight.w900)),
           const SizedBox(height: 12),
-          ThemePresetSelector(
-            selected: selectedTheme,
-            onChanged: (newTheme) {
-              ref.read(themeProvider.notifier).setTheme(newTheme);
-            },
-          ),
-
-          const SizedBox(height: 24),
-          Text('CLOUD SYNC', style: Theme.of(context).textTheme.titleSmall?.copyWith(letterSpacing: 1.5, color: Theme.of(context).hintColor, fontSize: 11, fontWeight: FontWeight.w900)),
-          const SizedBox(height: 12),
-          Card(
-            child: ListTile(
-              leading: Icon(_isBackingUp ? Icons.sync_rounded : Icons.cloud_upload_rounded, color: Theme.of(context).primaryColor),
-              title: const Text('Backup to Google Drive', style: TextStyle(fontWeight: FontWeight.w700)),
-              subtitle: Text('Save your settings and profile safely', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Theme.of(context).hintColor)),
-              trailing: _isBackingUp 
-                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                : const Icon(Icons.arrow_forward_ios_rounded, size: 14),
-              onTap: _isBackingUp ? null : _handleManualBackup,
-            ),
+          ModernThemeSelector(
+            selectedTheme: selectedTheme,
+            onModeChanged: (mode) => ref.read(themeProvider.notifier).setThemeMode(mode),
+            onColorChanged: (colorBaseId) => ref.read(themeProvider.notifier).setAccentColor(colorBaseId),
           ),
 
           const SizedBox(height: 24),
           Text('SECURITY', style: Theme.of(context).textTheme.titleSmall?.copyWith(letterSpacing: 1.5, color: Theme.of(context).hintColor, fontSize: 11, fontWeight: FontWeight.w900)),
           const SizedBox(height: 12),
-          AppToggleTile(
-            title: 'Strict 2FA Mode',
-            subtitle: 'Require identity check on every launch',
-            value: strict2FA,
-            onChanged: (v) => ref.read(strict2FAProvider.notifier).toggle(v),
-          ),
-          const SizedBox(height: 8),
-          AppToggleTile(
-            title: 'Auto-Lock Timeout',
-            subtitle: 'Lock vault after 5 mins of inactivity',
-            value: autoLock,
-            onChanged: (v) => ref.read(autoLockProvider.notifier).toggle(v),
-          ),
-          const SizedBox(height: 8),
           Card(
-            child: ListTile(
-              leading: const Icon(Icons.fingerprint_rounded),
-              title: Row(
-                children: [
-                  const Text('Biometric Unlock', style: TextStyle(fontWeight: FontWeight.w600)),
-                  const SizedBox(width: 8),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.primaryContainer,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Text('Coming Soon', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w600)),
+            child: Column(
+              children: [
+                AppToggleTile(
+                  title: 'Strict 2FA Mode',
+                  subtitle: 'Require identity check on every launch',
+                  value: strict2FA,
+                  onChanged: (v) => ref.read(strict2FAProvider.notifier).toggle(v),
+                ),
+                const Divider(height: 1, indent: 56),
+                AppToggleTile(
+                  title: 'Auto-Lock Timeout',
+                  subtitle: 'Lock vault after 5 mins of inactivity',
+                  value: autoLock,
+                  onChanged: (v) => ref.read(autoLockProvider.notifier).toggle(v),
+                ),
+                const Divider(height: 1, indent: 56),
+                ListTile(
+                  leading: const Icon(Icons.fingerprint_rounded),
+                  title: Row(
+                    children: [
+                      const Text('Biometric Unlock', style: TextStyle(fontWeight: FontWeight.w600)),
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.primaryContainer,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Text('Coming Soon', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w600)),
+                      ),
+                    ],
                   ),
-                ],
-              ),
-              subtitle: const Text('Use fingerprint or face to unlock'),
-              enabled: false,
+                  subtitle: const Text('Use fingerprint or face to unlock'),
+                  enabled: false,
+                ),
+                const Divider(height: 1, indent: 56),
+                ListTile(
+                  leading: const Icon(Icons.enhanced_encryption_rounded),
+                  title: Row(
+                    children: [
+                      const Text('Advanced Encryption', style: TextStyle(fontWeight: FontWeight.w600)),
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.primaryContainer,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Text('Coming Soon', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w600)),
+                      ),
+                    ],
+                  ),
+                  subtitle: const Text('Maximum security encryption'),
+                  enabled: false,
+                ),
+              ],
             ),
           ),
+          const SizedBox(height: 24),
+          Text('MANAGE', style: Theme.of(context).textTheme.titleSmall?.copyWith(letterSpacing: 1.5, color: Theme.of(context).hintColor, fontSize: 11, fontWeight: FontWeight.w900)),
           const SizedBox(height: 12),
           Card(
             child: Column(
@@ -216,6 +248,21 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const AboutScreen())),
                 ),
                 const Divider(height: 1, indent: 56),
+                ListTile(
+                  leading: const Icon(Icons.people_outline_rounded),
+                  title: const Text('The Team', style: TextStyle(fontWeight: FontWeight.w700)),
+                  trailing: const Icon(Icons.chevron_right_rounded),
+                  onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const TeamScreen())),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
+          Text('ACCOUNT', style: Theme.of(context).textTheme.titleSmall?.copyWith(letterSpacing: 1.5, color: Theme.of(context).hintColor, fontSize: 11, fontWeight: FontWeight.w900)),
+          const SizedBox(height: 12),
+          Card(
+            child: Column(
+              children: [
                 ListTile(
                   leading: const Icon(Icons.logout_rounded, color: Colors.orange),
                   title: const Text('Sign Out', style: TextStyle(color: Colors.orange, fontWeight: FontWeight.w700)),
@@ -267,7 +314,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     if (confirm == true) {
                       await StorageService().clearAll();
                       if (!context.mounted) return;
-                      // Navigate back to splash
                       Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
                         MaterialPageRoute(builder: (_) => const SplashScreen()),
                         (route) => false,
@@ -298,6 +344,78 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         Text(value, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
         Text(label, style: TextStyle(fontSize: 9, color: Theme.of(context).hintColor, letterSpacing: 1, fontWeight: FontWeight.w900)),
       ],
+    );
+  }
+
+  Widget _QuickActionTile({required IconData icon, required String label, required VoidCallback onTap}) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.3),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Column(
+          children: [
+            Icon(icon, size: 20, color: Theme.of(context).primaryColor),
+            const SizedBox(height: 4),
+            Text(label, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Theme.of(context).colorScheme.onPrimaryContainer)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showAdvancedEncryptionInfo(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(Icons.enhanced_encryption_rounded, color: Theme.of(context).primaryColor),
+            const SizedBox(width: 8),
+            const Text('Advanced Encryption', style: TextStyle(fontWeight: FontWeight.w900)),
+          ],
+        ),
+        content: const Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              '🔒 What it does:',
+              style: TextStyle(fontWeight: FontWeight.w700),
+            ),
+            SizedBox(height: 4),
+            Text('• PBKDF2 with 600,000 iterations'),
+            Text('• AES-256-GCM encryption'),
+            Text('• Maximum security for your files'),
+            SizedBox(height: 12),
+            Text(
+              '⚡ Current Mode:',
+              style: TextStyle(fontWeight: FontWeight.w700),
+            ),
+            SizedBox(height: 4),
+            Text('• Fast AES-256 encryption'),
+            Text('• Quick app unlock'),
+            Text('• Optimized for daily use'),
+            SizedBox(height: 12),
+            Text(
+              '📅 Coming Soon:',
+              style: TextStyle(fontWeight: FontWeight.w700, color: Colors.orange),
+            ),
+            SizedBox(height: 4),
+            Text('Toggle between modes when launched on Play Store. Replace with new feature at release.'),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Got it'),
+          ),
+        ],
+      ),
     );
   }
 }

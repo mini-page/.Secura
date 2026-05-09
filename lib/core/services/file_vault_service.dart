@@ -32,9 +32,21 @@ class FileVaultService {
 
   FileVaultService(this._ref);
 
+  Future<Directory> _getBaseDir() async {
+    try {
+      return await getApplicationSupportDirectory();
+    } catch (_) {
+      try {
+        return await getApplicationDocumentsDirectory();
+      } catch (_) {
+        return await getTemporaryDirectory();
+      }
+    }
+  }
+
   /// Internal directory that is hidden from the system's file manager and search.
   Future<Directory> get _lockerDir async {
-    final baseDir = await getApplicationSupportDirectory();
+    final baseDir = await _getBaseDir();
     final dir = Directory(p.join(baseDir.path, '.locker_private'));
     if (!await dir.exists()) {
       await dir.create(recursive: true);
@@ -44,7 +56,7 @@ class FileVaultService {
 
   /// Internal directory for soft-deleted files.
   Future<Directory> get _recycleDir async {
-    final baseDir = await getApplicationSupportDirectory();
+    final baseDir = await _getBaseDir();
     final dir = Directory(p.join(baseDir.path, '.secura_recycle'));
     if (!await dir.exists()) {
       await dir.create(recursive: true);
@@ -150,6 +162,7 @@ class FileVaultService {
 
     try {
       if (encrypt) {
+        debugPrint('Import: Encrypting file ${source.path}');
         final masterKey = _ref.read(sessionProvider);
         if (masterKey == null) {
           throw VaultException(
@@ -159,19 +172,38 @@ class FileVaultService {
         }
 
         final bytes = await source.readAsBytes();
+        debugPrint('Import: Read ${bytes.length} bytes from source');
         final encryptedBytes = EncryptionService.encryptBytes(bytes, masterKey);
         await File(targetPath).writeAsBytes(encryptedBytes);
+        debugPrint('Import: Wrote encrypted file to $targetPath');
       } else {
+        debugPrint('Import: Moving file ${source.path} to $targetPath');
         await source.copy(targetPath);
+      }
+
+      final targetFile = File(targetPath);
+      if (await targetFile.exists()) {
+        debugPrint('Import: SUCCESS - Target file exists at $targetPath');
+      } else {
+        debugPrint('Import: FAILURE - Target file does not exist after write');
       }
 
       _logger.logEvent(encrypt ? 'File Encrypted & Added' : 'File Added to Vault', details: originalName);
 
       // Securely shred source file after successful encryption
       if (await source.exists()) {
+        debugPrint('Import: Shredding source file ${source.path}');
         await _secureShred(source);
+        
+        if (await source.exists()) {
+          debugPrint('Import: Shredding FAILED - source file still exists, attempting force delete');
+          await source.delete().catchError((e) => debugPrint('Import: Force delete failed: $e'));
+        } else {
+          debugPrint('Import: Source file successfully shredded');
+        }
       }
     } catch (e) {
+      debugPrint('Add File Failure in Service: $e');
       // Clean up partial file if it exists
       final targetFile = File(targetPath);
       if (await targetFile.exists()) {
@@ -180,7 +212,6 @@ class FileVaultService {
 
       if (e is VaultException) rethrow;
 
-      debugPrint('Add File Failure: $e');
       throw VaultException(
         'Failed to add file: $e',
         userMessage: 'Could not add the file. Please try again.',

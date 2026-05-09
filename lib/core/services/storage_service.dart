@@ -18,6 +18,17 @@ class StorageService {
   static const _autoLockKey = 'auto_lock_timeout';
   static const _biometricKey = 'biometric_enabled';
   static const _sessionKey = 'session_key';
+  static const _encryptionModeKey = 'encryption_mode';
+
+  // Encryption mode: 'simple' or 'advanced'
+  Future<void> setEncryptionMode(String mode) async {
+    await saveSecureData(_encryptionModeKey, mode);
+  }
+
+  Future<String> getEncryptionMode() async {
+    final value = await getSecureData(_encryptionModeKey);
+    return value ?? 'advanced'; // Default to advanced for existing users
+  }
 
   // Generic Secure Data Methods
   Future<void> saveSecureData(String key, String value) async {

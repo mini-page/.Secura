@@ -116,7 +116,88 @@ mixin FileActionHandler {
           await ref.read(vaultProvider.notifier).deleteFile(file);
         }
         break;
+
+      case FileAction.info:
+        showModalBottomSheet(
+          context: context,
+          isScrollControlled: true,
+          backgroundColor: Colors.transparent,
+          builder: (context) => Container(
+            margin: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: Theme.of(context).cardTheme.color,
+              borderRadius: BorderRadius.circular(24),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.primaryContainer,
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Icon(Icons.insert_drive_file_rounded, color: Theme.of(context).colorScheme.primary, size: 32),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(file.name, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18), maxLines: 2, overflow: TextOverflow.ellipsis),
+                          const SizedBox(height: 4),
+                          Text(file.sizeString, style: TextStyle(color: Theme.of(context).hintColor, fontWeight: FontWeight.w600)),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 24),
+                const Divider(),
+                const SizedBox(height: 16),
+                _buildInfoRow(context, 'Status', file.isEncrypted ? '🔒 Encrypted' : '🔓 Decrypted'),
+                const SizedBox(height: 12),
+                _buildInfoRow(context, 'Modified', _formatDate(file.modified)),
+                const SizedBox(height: 12),
+                _buildInfoRow(context, 'Path', file.path, isPath: true),
+                const SizedBox(height: 24),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () => Navigator.pop(context),
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    ),
+                    child: const Text('Close'),
+                  ),
+                ),
+                const SizedBox(height: 8),
+              ],
+            ),
+          ),
+        );
+        break;
     }
+  }
+
+  Widget _buildInfoRow(BuildContext context, String label, String value, {bool isPath = false}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: Theme.of(context).hintColor, letterSpacing: 1)),
+        const SizedBox(height: 4),
+        Text(value, style: TextStyle(fontSize: isPath ? 12 : 14, fontWeight: FontWeight.w600, color: isPath ? Theme.of(context).hintColor : null), maxLines: isPath ? 2 : 1, overflow: TextOverflow.ellipsis),
+      ],
+    );
+  }
+
+  String _formatDate(DateTime date) {
+    return '${date.day}/${date.month}/${date.year} ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
   }
 
   void _showLoading(BuildContext context) {

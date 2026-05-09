@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../components/components.dart';
 import '../../components/shimmer_card.dart';
 import '../../core/file_action_handler.dart';
+import '../../core/services/navigation_provider.dart';
 import 'vault_provider.dart';
 import 'import_screen.dart';
 
@@ -13,6 +14,10 @@ class HomeScreen extends ConsumerWidget with FileActionHandler {
     Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ImportScreen()));
   }
 
+  Future<void> _onRefresh(WidgetRef ref) async {
+    await ref.read(vaultProvider.notifier).refresh();
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final vaultState = ref.watch(filteredVaultProvider);
@@ -21,27 +26,13 @@ class HomeScreen extends ConsumerWidget with FileActionHandler {
 
     return Scaffold(
       body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.all(20),
-          physics: const BouncingScrollPhysics(decelerationRate: ScrollDecelerationRate.fast),
-          children: [
-            if (isBatchMode)
-              Container(
-                padding: const EdgeInsets.only(bottom: 16),
-                child: Row(children: [
-                  IconButton(icon: const Icon(Icons.close_rounded), onPressed: () { ref.read(batchModeProvider.notifier).disable(); ref.read(selectedFilesProvider.notifier).clear(); }),
-                  const SizedBox(width: 8),
-                  Text('${selectedFiles.length} selected', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 18)),
-                  const Spacer(),
-                  TextButton(onPressed: () => ref.read(selectedFilesProvider.notifier).clear(), child: const Text('Clear')),
-                ]),
-              )
-            else
-              Row(children: [
-                Text('Secura', style: Theme.of(context).textTheme.headlineLarge?.copyWith(color: Theme.of(context).colorScheme.primary)),
-                const Spacer(),
-                IconButton(onPressed: () => ref.read(batchModeProvider.notifier).enable(), icon: const Icon(Icons.checklist_rounded), style: IconButton.styleFrom(backgroundColor: Theme.of(context).cardTheme.color, padding: const EdgeInsets.all(12))),
-              ]),
+        child: RefreshIndicator(
+          onRefresh: () => _onRefresh(ref),
+          child: ListView(
+            padding: const EdgeInsets.all(20),
+            physics: const BouncingScrollPhysics(decelerationRate: ScrollDecelerationRate.fast),
+            children: [
+            const AppHeader(title: 'Secura', showSearch: false),
             const SizedBox(height: 8),
             TweenAnimationBuilder<double>(
               tween: Tween(begin: 0.0, end: 1.0),
@@ -68,22 +59,49 @@ class HomeScreen extends ConsumerWidget with FileActionHandler {
               ),
             ),
             const SizedBox(height: 32),
-            Row(children: [
-              Text('LOCKER', style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w900, letterSpacing: 4, color: Theme.of(context).hintColor, fontSize: 12)),
-              const Spacer(),
-              _FilterChips(),
-            ]),
-            const SizedBox(height: 16),
             vaultState.when(
               data: (files) {
-                if (files.isEmpty) return Center(child: Padding(padding: const EdgeInsets.symmetric(vertical: 60), child: Text('Your locker is empty', style: TextStyle(fontWeight: FontWeight.bold, color: Theme.of(context).hintColor))));
-                return Column(children: files.map((file) => FileItemCard(
-                  file: file,
-                  index: files.indexOf(file),
-                  isSelected: selectedFiles.contains(file.path),
-                  onSelect: isBatchMode ? (selected) { ref.read(selectedFilesProvider.notifier).toggle(file.path); } : null,
-                  onAction: (action) => handleFileAction(context, ref, file, action),
-                )).toList());
+                final recentFiles = files.take(3).toList();
+                final totalBytes = files.fold<int>(0, (sum, file) => sum + file.size);
+                final usedMB = (totalBytes / (1024 * 1024)).toStringAsFixed(1);
+                
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(children: [
+                      Text('RECENT IMPORTS', style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w900, letterSpacing: 4, color: Theme.of(context).hintColor, fontSize: 11)),
+                      const Spacer(),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.5),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text('$usedMB MB USED', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Theme.of(context).colorScheme.onPrimaryContainer)),
+                      ),
+                    ]),
+                    const SizedBox(height: 16),
+                    if (recentFiles.isEmpty)
+                      _buildEmptyState(context)
+                    else ...[
+                      Column(
+                        children: recentFiles.map((file) => FileItemCard(
+                          file: file,
+                          index: recentFiles.indexOf(file),
+                          onAction: (action) => handleFileAction(context, ref, file, action),
+                        )).toList(),
+                      ),
+                      const SizedBox(height: 12),
+                      Center(
+                        child: TextButton.icon(
+                          onPressed: () => ref.read(navigationProvider.notifier).setIndex(1),
+                          icon: const Icon(Icons.arrow_forward_rounded, size: 16),
+                          label: const Text('View All Files', style: TextStyle(fontWeight: FontWeight.w900)),
+                        ),
+                      ),
+                    ],
+                  ],
+                );
               },
               loading: () => const Center(child: CircularProgressIndicator()),
               error: (err, stack) => Center(child: Text('Error: $err')),
@@ -91,8 +109,23 @@ class HomeScreen extends ConsumerWidget with FileActionHandler {
             const SizedBox(height: 100),
           ],
         ),
+        ),
       ),
-      bottomSheet: isBatchMode && selectedFiles.isNotEmpty ? _BatchActionBar(selectedCount: selectedFiles.length) : null,
+    );
+  }
+
+  Widget _buildEmptyState(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 40),
+        child: Column(
+          children: [
+            Icon(Icons.auto_awesome_motion_rounded, size: 48, color: Theme.of(context).hintColor.withValues(alpha: 0.3)),
+            const SizedBox(height: 16),
+            Text('No Recent Activity', style: TextStyle(color: Theme.of(context).hintColor, fontWeight: FontWeight.w700)),
+          ],
+        ),
+      ),
     );
   }
 }

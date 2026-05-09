@@ -185,7 +185,8 @@ class _AuthScreenState extends ConsumerState<AuthScreen> with SingleTickerProvid
       final savedHash = await _storage.getAuthHash();
 
       if (savedSalt != null && savedHash != null) {
-        final testKey = EncryptionService.deriveKey(_pin, savedSalt);
+        // Use simple mode (10k iterations) for fast unlock
+        final testKey = EncryptionService.deriveKey(_pin, savedSalt, iterations: KeyDerivationConfig.simpleIterations);
         final testHash = EncryptionService.hashKey(testKey);
 
         if (testHash == savedHash) {
@@ -220,7 +221,8 @@ class _AuthScreenState extends ConsumerState<AuthScreen> with SingleTickerProvid
       } else {
         if (_pin == _firstPin) {
           final salt = EncryptionService.generateSalt();
-          final key = EncryptionService.deriveKey(_pin, salt);
+          // Use simple mode (10k iterations) for fast encryption
+          final key = EncryptionService.deriveKey(_pin, salt, iterations: KeyDerivationConfig.simpleIterations);
           final hash = EncryptionService.hashKey(key);
 
           await _storage.saveSalt(salt);
@@ -254,7 +256,8 @@ class _AuthScreenState extends ConsumerState<AuthScreen> with SingleTickerProvid
       final savedHash = await _storage.getAuthHash();
 
       if (savedSalt != null && savedHash != null) {
-        final testKey = EncryptionService.deriveKey(_pin, savedSalt);
+        // Use simple mode (10k iterations) for fast unlock
+        final testKey = EncryptionService.deriveKey(_pin, savedSalt, iterations: KeyDerivationConfig.simpleIterations);
         final testHash = EncryptionService.hashKey(testKey);
 
         if (testHash == savedHash) {
@@ -756,7 +759,17 @@ class _AuthScreenState extends ConsumerState<AuthScreen> with SingleTickerProvid
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             color: Theme.of(context).cardTheme.color,
-            border: Border.all(color: Theme.of(context).dividerColor, width: 1),
+            border: Border.all(
+              color: Theme.of(context).dividerColor.withValues(alpha: 0.2), 
+              width: 1.5,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.04),
+                blurRadius: 12,
+                offset: const Offset(0, 4),
+              ),
+            ],
           ),
           alignment: Alignment.center,
           child: isIcon

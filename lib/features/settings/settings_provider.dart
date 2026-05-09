@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/services/storage_service.dart';
+import '../../core/services/encryption_service.dart';
 import 'package:local_auth/local_auth.dart';
 
 final _storage = StorageService();
@@ -66,4 +67,29 @@ class AutoLockNotifier extends Notifier<bool> {
     await _storage.setAutoLock(value);
     state = value;
   }
+}
+
+// Encryption mode provider (simple/fast vs advanced/secure)
+final encryptionModeProvider = NotifierProvider<EncryptionModeNotifier, EncryptionMode>(EncryptionModeNotifier.new);
+
+class EncryptionModeNotifier extends Notifier<EncryptionMode> {
+  @override
+  EncryptionMode build() {
+    _load();
+    return EncryptionMode.advanced;
+  }
+
+  Future<void> _load() async {
+    final mode = await _storage.getEncryptionMode();
+    state = mode == 'simple' ? EncryptionMode.simple : EncryptionMode.advanced;
+  }
+
+  Future<void> setMode(EncryptionMode mode) async {
+    await _storage.setEncryptionMode(mode == EncryptionMode.simple ? 'simple' : 'advanced');
+    state = mode;
+  }
+
+  int get iterations => state == EncryptionMode.simple
+      ? KeyDerivationConfig.simpleIterations
+      : KeyDerivationConfig.advancedIterations;
 }

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../features/vault/vault_file_model.dart';
 
-enum FileAction { open, share, encrypt, restore, delete }
+enum FileAction { open, share, encrypt, restore, delete, info }
 
 /// File type categories for icon display
 enum FileType { image, video, audio, document, pdf, spreadsheet, archive, code, unknown }
@@ -239,6 +239,7 @@ class _FileItemCardState extends State<FileItemCard> with SingleTickerProviderSt
               const Divider(height: 1),
               _buildActionItem(context, FileAction.open, Icons.open_in_new_rounded, 'Open File', 'View content securely'),
               _buildActionItem(context, FileAction.share, Icons.share_rounded, 'Share Copy', 'Export a decrypted copy'),
+              _buildActionItem(context, FileAction.info, Icons.info_outline_rounded, 'File Details', 'View file information'),
               if (!widget.file.isEncrypted)
                 _buildActionItem(context, FileAction.encrypt, Icons.lock_outline_rounded, 'Encrypt Now', 'Protect with AES-256'),
               _buildActionItem(context, FileAction.restore, Icons.settings_backup_restore_rounded, 'Restore File', 'Move back to public storage'),

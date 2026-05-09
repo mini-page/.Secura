@@ -7,9 +7,23 @@ import 'package:crypto/crypto.dart';
 
 /// Configuration for key derivation - production ready
 class KeyDerivationConfig {
-  static const int iterations = 600000; // OWASP recommended minimum
+  /// Simple mode - fast (like Google Safe Folder)
+  static const int simpleIterations = 10000;
+
+  /// Advanced mode - OWASP recommended minimum for maximum security
+  static const int advancedIterations = 600000;
+
+  // Default to advanced for current users
+  static const int defaultIterations = advancedIterations;
+
   static const int keyLength = 32; // 256-bit AES key
   static const int saltLength = 32; // 256-bit salt
+}
+
+/// Encryption mode selector
+enum EncryptionMode {
+  simple, // Fast - 10k iterations, for daily use
+  advanced, // Secure - 600k iterations, for maximum security
 }
 
 /// Production-grade encryption service with secure key derivation
@@ -22,20 +36,31 @@ class EncryptionService {
   }
 
   /// Derive a 32-byte AES key from PIN + Salt using PBKDF2-HMAC-SHA256
-  /// Uses OWASP recommended iteration count for production security
-  static String deriveKey(String pin, String salt) {
+  /// [iterations] defaults to 600k (advanced) for backward compatibility
+  /// Use 10k iterations for simple/fast mode
+  static String deriveKey(String pin, String salt, {int? iterations}) {
     final saltBytes = base64Url.decode(salt);
     final pinBytes = utf8.encode(pin);
+
+    final iter = iterations ?? KeyDerivationConfig.defaultIterations;
 
     // PBKDF2 implementation using HMAC-SHA256
     final result = _pbkdf2(
       password: pinBytes,
       salt: saltBytes,
-      iterations: KeyDerivationConfig.iterations,
+      iterations: iter,
       keyLength: KeyDerivationConfig.keyLength,
     );
 
     return base64Url.encode(result);
+  }
+
+  /// Derive key with specific encryption mode
+  static String deriveKeyWithMode(String pin, String salt, EncryptionMode mode) {
+    final iterations = mode == EncryptionMode.simple
+        ? KeyDerivationConfig.simpleIterations
+        : KeyDerivationConfig.advancedIterations;
+    return deriveKey(pin, salt, iterations: iterations);
   }
 
   /// PBKDF2-HMAC-SHA256 implementation

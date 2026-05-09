@@ -28,10 +28,33 @@ class ThemeNotifier extends Notifier<SecuraTheme> {
     _storage.saveThemeId(theme.id);
   }
 
+  void toggleMode() {
+    final nextIsDark = !state.isDark;
+    final baseId = state.id.split('_')[0];
+    final newId = '${baseId}_${nextIsDark ? 'dark' : 'light'}';
+    final newTheme = SecuraTheme.fromId(newId);
+    if (newTheme != null) {
+      setTheme(newTheme);
+    }
+  }
+
+  void setAccentColor(String colorBaseId) {
+    final newId = '${colorBaseId}_${state.isDark ? 'dark' : 'light'}';
+    final newTheme = SecuraTheme.fromId(newId);
+    if (newTheme != null) {
+      setTheme(newTheme);
+    }
+  }
+
   void setThemeMode(ThemeMode mode) {
-    final theme = mode == ThemeMode.dark
-        ? SecuraTheme.presets[1]
-        : SecuraTheme.presets[0];
-    setTheme(theme);
+    final isDark = mode == ThemeMode.dark;
+    if (state.isDark == isDark) return;
+    
+    final baseId = state.id.split('_')[0];
+    final newId = '${baseId}_${isDark ? 'dark' : 'light'}';
+    final newTheme = SecuraTheme.fromId(newId);
+    if (newTheme != null) {
+      setTheme(newTheme);
+    }
   }
 }

@@ -3,9 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../features/vault/vault_provider.dart';
 
 class AppHeader extends ConsumerStatefulWidget {
-  const AppHeader({required this.title, super.key});
+  const AppHeader({required this.title, this.showSearch = true, super.key});
 
   final String title;
+  final bool showSearch;
 
   @override
   ConsumerState<AppHeader> createState() => _AppHeaderState();
@@ -42,14 +43,15 @@ class _AppHeaderState extends ConsumerState<AppHeader> with SingleTickerProvider
                   ),
                 ),
                 const Spacer(),
-                IconButton(
-                  onPressed: () => setState(() => _isSearching = true),
-                  icon: const Icon(Icons.search_rounded),
-                  style: IconButton.styleFrom(
-                    backgroundColor: Theme.of(context).cardTheme.color,
-                    padding: const EdgeInsets.all(12),
+                if (widget.showSearch)
+                  IconButton(
+                    onPressed: () => setState(() => _isSearching = true),
+                    icon: const Icon(Icons.search_rounded),
+                    style: IconButton.styleFrom(
+                      backgroundColor: Theme.of(context).cardTheme.color,
+                      padding: const EdgeInsets.all(12),
+                    ),
                   ),
-                ),
               ],
             ),
           ),

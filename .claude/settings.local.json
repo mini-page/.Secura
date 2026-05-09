@@ -12,7 +12,10 @@
       "Bash(sed -i '8d' lib/core/services/file_vault_service.dart)",
       "Bash(sed -i '6d' lib/features/vault/import_screen.dart)",
       "Skill(update-config)",
-      "Bash(git checkout *)"
+      "Bash(git checkout *)",
+      "WebSearch",
+      "WebFetch(domain:support.google.com)",
+      "WebFetch(domain:www.androidauthority.com)"
     ],
     "defaultMode": "auto"
   },
