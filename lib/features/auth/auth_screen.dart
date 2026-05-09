@@ -230,7 +230,12 @@ class _AuthScreenState extends ConsumerState<AuthScreen> with SingleTickerProvid
           ref.read(sessionProvider.notifier).setSession(key);
           await _storage.saveSessionKey(key);
 
-          await _logger.logEvent('PIN Established (Zero-Knowledge)');
+          // Log PIN setup or change
+          if (widget.isSetup && _oldPinVerified) {
+            await _logger.logEvent('PIN Changed', details: 'PIN successfully updated');
+          } else {
+            await _logger.logEvent('PIN Established', details: 'First-time PIN setup');
+          }
           if (!mounted) return;
           
           setState(() {
@@ -279,6 +284,9 @@ class _AuthScreenState extends ConsumerState<AuthScreen> with SingleTickerProvid
     HapticFeedback.vibrate();
     _failedAttempts++;
 
+    // Log failed login attempt
+    _logger.logEvent('Failed PIN Attempt', details: 'Attempt ${_failedAttempts}/3');
+
     if (_failedAttempts >= 3) {
       if (!mounted) return;
       setState(() {
@@ -288,7 +296,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> with SingleTickerProvid
         _message = 'Security Lockout';
         _subMessage = 'Too many failed attempts.';
       });
-      _logger.logEvent('Failed Login: Locked Out');
+      _logger.logEvent('Failed Login: Locked Out', details: '3+ attempts');
       _startLockoutTimer();
     } else {
       if (!mounted) return;

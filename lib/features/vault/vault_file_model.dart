@@ -4,6 +4,7 @@ class VaultFile {
   final int size;
   final DateTime modified;
   final bool isEncrypted;
+  final DateTime? lastOpened;
 
   VaultFile({
     required this.name,
@@ -11,6 +12,7 @@ class VaultFile {
     required this.size,
     required this.modified,
     required this.isEncrypted,
+    this.lastOpened,
   });
 
   String get sizeString {

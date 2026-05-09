@@ -53,7 +53,10 @@ class SearchQueryNotifier extends Notifier<String> {
 
 enum VaultFilter { all, encrypted, decrypted }
 
+enum VaultSort { newest, oldest, nameAZ, nameZA, largest, smallest }
+
 final vaultFilterProvider = NotifierProvider<VaultFilterNotifier, VaultFilter>(VaultFilterNotifier.new);
+final vaultSortProvider = NotifierProvider<VaultSortNotifier, VaultSort>(VaultSortNotifier.new);
 
 class VaultFilterNotifier extends Notifier<VaultFilter> {
   @override
@@ -61,6 +64,15 @@ class VaultFilterNotifier extends Notifier<VaultFilter> {
 
   void setFilter(VaultFilter filter) {
     state = filter;
+  }
+}
+
+class VaultSortNotifier extends Notifier<VaultSort> {
+  @override
+  VaultSort build() => VaultSort.newest;
+
+  void setSort(VaultSort sort) {
+    state = sort;
   }
 }
 
@@ -102,6 +114,7 @@ final filteredVaultProvider = Provider<AsyncValue<List<VaultFile>>>((ref) {
   final vaultState = ref.watch(vaultProvider);
   final query = ref.watch(searchQueryProvider).toLowerCase();
   final filter = ref.watch(vaultFilterProvider);
+  final sort = ref.watch(vaultSortProvider);
 
   return vaultState.whenData((files) {
     var filtered = files;
@@ -121,6 +134,28 @@ final filteredVaultProvider = Provider<AsyncValue<List<VaultFile>>>((ref) {
       filtered = filtered.where((file) => file.isEncrypted).toList();
     } else if (filter == VaultFilter.decrypted) {
       filtered = filtered.where((file) => !file.isEncrypted).toList();
+    }
+
+    // Apply sorting
+    switch (sort) {
+      case VaultSort.newest:
+        filtered.sort((a, b) => b.modified.compareTo(a.modified));
+        break;
+      case VaultSort.oldest:
+        filtered.sort((a, b) => a.modified.compareTo(b.modified));
+        break;
+      case VaultSort.nameAZ:
+        filtered.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+        break;
+      case VaultSort.nameZA:
+        filtered.sort((a, b) => b.name.toLowerCase().compareTo(a.name.toLowerCase()));
+        break;
+      case VaultSort.largest:
+        filtered.sort((a, b) => b.size.compareTo(a.size));
+        break;
+      case VaultSort.smallest:
+        filtered.sort((a, b) => a.size.compareTo(b.size));
+        break;
     }
 
     return filtered;

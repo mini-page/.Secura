@@ -175,29 +175,92 @@ class LockerScreen extends ConsumerWidget with FileActionHandler {
 
   Widget _buildFilters(BuildContext context, WidgetRef ref) {
     final currentFilter = ref.watch(vaultFilterProvider);
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Row(
-        children: VaultFilter.values.map((filter) {
-          final isSelected = currentFilter == filter;
-          return Padding(
-            padding: const EdgeInsets.only(right: 8),
-            child: FilterChip(
-              selected: isSelected,
-              label: Text(filter == VaultFilter.all ? 'All' : (filter == VaultFilter.encrypted ? 'Encrypted' : 'Decrypted')),
-              onSelected: (_) => ref.read(vaultFilterProvider.notifier).setFilter(filter),
-              labelStyle: TextStyle(
-                fontSize: 12, 
-                fontWeight: FontWeight.w800, 
-                color: isSelected ? Theme.of(context).colorScheme.onPrimary : Theme.of(context).hintColor
-              ),
-              selectedColor: Theme.of(context).primaryColor,
-              checkmarkColor: Theme.of(context).colorScheme.onPrimary,
-              side: BorderSide(color: isSelected ? Theme.of(context).primaryColor : Theme.of(context).dividerColor),
+    final currentSort = ref.watch(vaultSortProvider);
+
+    return Row(
+      children: [
+        Expanded(
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: VaultFilter.values.map((filter) {
+                final isSelected = currentFilter == filter;
+                return Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: FilterChip(
+                    selected: isSelected,
+                    label: Text(filter == VaultFilter.all ? 'All' : (filter == VaultFilter.encrypted ? 'Encrypted' : 'Decrypted')),
+                    onSelected: (_) => ref.read(vaultFilterProvider.notifier).setFilter(filter),
+                    labelStyle: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                      color: isSelected ? Theme.of(context).colorScheme.onPrimary : Theme.of(context).hintColor
+                    ),
+                    selectedColor: Theme.of(context).primaryColor,
+                    checkmarkColor: Theme.of(context).colorScheme.onPrimary,
+                    side: BorderSide(color: isSelected ? Theme.of(context).primaryColor : Theme.of(context).dividerColor),
+                  ),
+                );
+              }).toList(),
             ),
-          );
-        }).toList(),
+          ),
+        ),
+        // Sort Button
+        Container(
+          decoration: BoxDecoration(
+            color: Theme.of(context).cardTheme.color,
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: IconButton(
+            icon: Icon(Icons.sort_rounded, size: 18, color: Theme.of(context).hintColor),
+            onPressed: () => _showSortOptions(context, ref),
+            padding: const EdgeInsets.all(8),
+            constraints: const BoxConstraints(),
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _showSortOptions(BuildContext context, WidgetRef ref) {
+    final currentSort = ref.read(vaultSortProvider);
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
+      builder: (context) => Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Sort by', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900)),
+            const SizedBox(height: 16),
+            _buildSortOption(context, ref, VaultSort.newest, 'Newest First', Icons.arrow_downward_rounded, currentSort),
+            _buildSortOption(context, ref, VaultSort.oldest, 'Oldest First', Icons.arrow_upward_rounded, currentSort),
+            _buildSortOption(context, ref, VaultSort.nameAZ, 'Name (A-Z)', Icons.sort_by_alpha_rounded, currentSort),
+            _buildSortOption(context, ref, VaultSort.nameZA, 'Name (Z-A)', Icons.sort_by_alpha_rounded, currentSort),
+            _buildSortOption(context, ref, VaultSort.largest, 'Largest First', Icons.data_usage_rounded, currentSort),
+            _buildSortOption(context, ref, VaultSort.smallest, 'Smallest First', Icons.data_saver_off_rounded, currentSort),
+            const SizedBox(height: 16),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSortOption(BuildContext context, WidgetRef ref, VaultSort sort, String label, IconData icon, VaultSort currentSort) {
+    final isSelected = currentSort == sort;
+    return ListTile(
+      leading: Icon(icon, color: isSelected ? Theme.of(context).primaryColor : Theme.of(context).hintColor),
+      title: Text(label, style: TextStyle(fontWeight: isSelected ? FontWeight.w900 : FontWeight.w600)),
+      trailing: isSelected ? Icon(Icons.check_rounded, color: Theme.of(context).primaryColor) : null,
+      onTap: () {
+        ref.read(vaultSortProvider.notifier).setSort(sort);
+        Navigator.pop(context);
+      },
     );
   }
 
