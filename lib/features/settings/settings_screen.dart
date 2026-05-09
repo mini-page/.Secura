@@ -162,6 +162,28 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             value: autoLock,
             onChanged: (v) => ref.read(autoLockProvider.notifier).toggle(v),
           ),
+          const SizedBox(height: 8),
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.fingerprint_rounded),
+              title: Row(
+                children: [
+                  const Text('Biometric Unlock', style: TextStyle(fontWeight: FontWeight.w600)),
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.primaryContainer,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Text('Coming Soon', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w600)),
+                  ),
+                ],
+              ),
+              subtitle: const Text('Use fingerprint or face to unlock'),
+              enabled: false,
+            ),
+          ),
           const SizedBox(height: 12),
           Card(
             child: Column(

@@ -30,6 +30,7 @@ dependencies:
   googleapis_auth: ^2.3.0
   http: ^1.6.0
   extension_google_sign_in_as_googleapis_auth: ^3.0.0
+  local_auth: ^3.0.1
 
 
 dev_dependencies:

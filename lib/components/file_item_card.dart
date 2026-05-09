@@ -108,12 +108,16 @@ class FileItemCard extends StatefulWidget {
     required this.file,
     this.onAction,
     this.index = 0,
+    this.isSelected = false,
+    this.onSelect,
     super.key,
   });
 
   final VaultFile file;
   final Function(FileAction)? onAction;
   final int index;
+  final bool isSelected;
+  final Function(bool)? onSelect;
 
   @override
   State<FileItemCard> createState() => _FileItemCardState();
@@ -350,7 +354,31 @@ class _FileItemCardState extends State<FileItemCard> with SingleTickerProviderSt
                   margin: EdgeInsets.zero,
                   child: ListTile(
                     contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                    leading: Hero(
+                    leading: widget.onSelect != null
+                      ? GestureDetector(
+                          onTap: () => widget.onSelect?.call(!widget.isSelected),
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 200),
+                            width: 28,
+                            height: 28,
+                            decoration: BoxDecoration(
+                              color: widget.isSelected
+                                  ? Theme.of(context).primaryColor
+                                  : Colors.transparent,
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                color: widget.isSelected
+                                    ? Theme.of(context).primaryColor
+                                    : Theme.of(context).dividerColor,
+                                width: 2,
+                              ),
+                            ),
+                            child: widget.isSelected
+                                ? const Icon(Icons.check_rounded, size: 18, color: Colors.white)
+                                : null,
+                          ),
+                        )
+                      : Hero(
                       tag: widget.file.path,
                       child: Container(
                         width: 52,

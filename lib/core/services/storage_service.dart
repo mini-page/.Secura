@@ -16,6 +16,8 @@ class StorageService {
   static const _themeIdKey = 'app_theme_id';
   static const _strict2faKey = 'strict_2fa_mode';
   static const _autoLockKey = 'auto_lock_timeout';
+  static const _biometricKey = 'biometric_enabled';
+  static const _sessionKey = 'session_key';
 
   // Generic Secure Data Methods
   Future<void> saveSecureData(String key, String value) async {
@@ -75,6 +77,27 @@ class StorageService {
   Future<bool> getAutoLock() async {
     final value = await getSecureData(_autoLockKey);
     return value == 'true';
+  }
+
+  Future<void> setBiometricEnabled(bool value) async {
+    await saveSecureData(_biometricKey, value.toString());
+  }
+
+  Future<bool> getBiometricEnabled() async {
+    final value = await getSecureData(_biometricKey);
+    return value == 'true';
+  }
+
+  Future<void> saveSessionKey(String key) async {
+    await saveSecureData(_sessionKey, key);
+  }
+
+  Future<String?> getSessionKey() async {
+    return await getSecureData(_sessionKey);
+  }
+
+  Future<void> clearSessionKey() async {
+    await deleteSecureData(_sessionKey);
   }
 
   Future<void> saveUser(UserModel user) async {

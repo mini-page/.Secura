@@ -1,4 +1,9 @@
 {
+  "respectGitignore": true,
+  "cleanupPeriodDays": 60,
+  "env": {
+    "FLUTTER_SUPPRESS_ANALYTICS": "true"
+  },
   "permissions": {
     "allow": [
       "Bash(flutter *)",
@@ -6,15 +11,11 @@
       "Bash(sed -i '1d; 16d' lib/app_shell.dart)",
       "Bash(sed -i '8d' lib/core/services/file_vault_service.dart)",
       "Bash(sed -i '6d' lib/features/vault/import_screen.dart)",
-      "Skill(update-config)"
+      "Skill(update-config)",
+      "Bash(git checkout *)"
     ],
     "defaultMode": "auto"
   },
   "model": "sonnet",
-  "env": {
-    "FLUTTER_SUPPRESS_ANALYTICS": "true"
-  },
-  "respectGitignore": true,
-  "autoCompactEnabled": true,
-  "cleanupPeriodDays": 60
+  "autoCompactEnabled": true
 }

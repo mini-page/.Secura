@@ -73,10 +73,10 @@ class _SplashScreenState extends State<SplashScreen> {
             const SizedBox(height: 24),
             Text(
               'SECURA',
-              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                color: Theme.of(context).brightness == Brightness.dark ? Colors.white : const Color(0xFF575992),
-                letterSpacing: 4,
+              style: Theme.of(context).textTheme.headlineLarge?.copyWith(
                 fontWeight: FontWeight.w900,
+                letterSpacing: 4,
+                color: Theme.of(context).brightness == Brightness.dark ? Colors.white : const Color(0xFF575992),
               ),
             ),
           ],

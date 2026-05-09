@@ -63,6 +63,40 @@ class VaultFilterNotifier extends Notifier<VaultFilter> {
   }
 }
 
+// Batch selection state
+final batchModeProvider = NotifierProvider<BatchModeNotifier, bool>(BatchModeNotifier.new);
+
+class BatchModeNotifier extends Notifier<bool> {
+  @override
+  bool build() => false;
+
+  void toggle() => state = !state;
+  void enable() => state = true;
+  void disable() => state = false;
+}
+
+final selectedFilesProvider = NotifierProvider<SelectedFilesNotifier, Set<String>>(SelectedFilesNotifier.new);
+
+class SelectedFilesNotifier extends Notifier<Set<String>> {
+  @override
+  Set<String> build() => {};
+
+  void toggle(String path) {
+    if (state.contains(path)) {
+      state = {...state}..remove(path);
+    } else {
+      state = {...state, path};
+    }
+  }
+
+  void selectAll(List<String> paths) {
+    state = {...paths};
+  }
+
+  void clear() => state = {};
+  int get count => state.length;
+}
+
 final filteredVaultProvider = Provider<AsyncValue<List<VaultFile>>>((ref) {
   final vaultState = ref.watch(vaultProvider);
   final query = ref.watch(searchQueryProvider).toLowerCase();
@@ -173,6 +207,28 @@ class VaultNotifier extends AsyncNotifier<List<VaultFile>> {
       ref.read(vaultOperationStatusProvider.notifier).state = VaultOperationStatus.error;
       return false;
     }
+  }
+
+  Future<int> batchEncrypt(List<VaultFile> files) async {
+    int successCount = 0;
+    for (final file in files) {
+      if (!file.isEncrypted) {
+        if (await encryptExistingFile(file)) {
+          successCount++;
+        }
+      }
+    }
+    return successCount;
+  }
+
+  Future<int> batchDelete(List<VaultFile> files) async {
+    int successCount = 0;
+    for (final file in files) {
+      if (await deleteFile(file)) {
+        successCount++;
+      }
+    }
+    return successCount;
   }
 }
 

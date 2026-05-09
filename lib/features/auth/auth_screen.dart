@@ -70,7 +70,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> with SingleTickerProvid
     _keys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'];
     _keys.shuffle(Random());
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
-    // Check PIN in background without blocking UI
+    // Check PIN in background
     WidgetsBinding.instance.addPostFrameCallback((_) => _checkExistingPin());
   }
 
@@ -226,6 +226,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> with SingleTickerProvid
           await _storage.saveSalt(salt);
           await _storage.saveAuthHash(hash);
           ref.read(sessionProvider.notifier).setSession(key);
+          await _storage.saveSessionKey(key);
 
           await _logger.logEvent('PIN Established (Zero-Knowledge)');
           if (!mounted) return;
@@ -258,6 +259,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> with SingleTickerProvid
 
         if (testHash == savedHash) {
           ref.read(sessionProvider.notifier).setSession(testKey);
+          await _storage.saveSessionKey(testKey);
           await _logger.logEvent('App Unlocked');
           if (!mounted) return;
           _completeAuth();
@@ -374,13 +376,25 @@ class _AuthScreenState extends ConsumerState<AuthScreen> with SingleTickerProvid
               if (!widget.isSetup && !_isLockedOut)
                 Padding(
                   padding: const EdgeInsets.only(top: 16),
-                  child: TextButton(
-                    onPressed: _startForgotPinFlow,
-                    child: const Text('Forgot PIN?', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12)),
+                  child: Column(
+                    children: [
+                      TextButton(
+                        onPressed: _startForgotPinFlow,
+                        child: const Text('Forgot PIN?', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12)),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.primaryContainer,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Text('Biometric unlock coming soon', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600)),
+                      ),
+                    ],
                   ),
                 ),
 
-              const SizedBox(height: 40),
+              const SizedBox(height: 24),
               Opacity(
                 opacity: _isLockedOut ? 0.3 : 1.0,
                 child: _buildNumpad(),
@@ -696,26 +710,32 @@ class _AuthScreenState extends ConsumerState<AuthScreen> with SingleTickerProvid
   }
 
   Widget _buildNumpad() {
+    const keySpacing = 18.0;
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 50),
+      padding: const EdgeInsets.symmetric(horizontal: 32),
       child: Column(
         children: [
           for (var i = 0; i < 3; i++)
             Padding(
-              padding: const EdgeInsets.only(bottom: 8),
+              padding: const EdgeInsets.only(bottom: 12),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  for (var j = 0; j < 3; j++)
-                    _buildKey(_keys[i * 3 + j]),
+                  _buildKey(_keys[i * 3]),
+                  const SizedBox(width: keySpacing),
+                  _buildKey(_keys[i * 3 + 1]),
+                  const SizedBox(width: keySpacing),
+                  _buildKey(_keys[i * 3 + 2]),
                 ],
               ),
             ),
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
               const SizedBox(width: 60),
+              const SizedBox(width: keySpacing),
               _buildKey(_keys[9]),
+              const SizedBox(width: keySpacing),
               _buildKey('backspace', isIcon: true),
             ],
           ),
@@ -739,10 +759,10 @@ class _AuthScreenState extends ConsumerState<AuthScreen> with SingleTickerProvid
             border: Border.all(color: Theme.of(context).dividerColor, width: 1),
           ),
           alignment: Alignment.center,
-          child: isIcon 
-              ? Icon(Icons.backspace_rounded, size: 18, color: Theme.of(context).hintColor) 
+          child: isIcon
+              ? Icon(Icons.backspace_rounded, size: 18, color: Theme.of(context).hintColor)
               : Text(
-                  label, 
+                  label,
                   style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900),
                 ),
         ),
