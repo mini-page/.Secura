@@ -187,7 +187,7 @@ class _FileItemCardState extends State<FileItemCard> with SingleTickerProviderSt
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: Colors.grey.withValues(alpha: 0.2),
+                  color: Theme.of(context).dividerColor,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -224,7 +224,7 @@ class _FileItemCardState extends State<FileItemCard> with SingleTickerProviderSt
                           ),
                           Text(
                             '${widget.file.sizeString} • Secure Vault Storage',
-                            style: const TextStyle(color: Colors.grey, fontWeight: FontWeight.bold, fontSize: 12),
+                            style: TextStyle(color: Theme.of(context).textTheme.bodySmall?.color ?? Colors.grey, fontWeight: FontWeight.bold, fontSize: 12),
                           ),
                         ],
                       ),
@@ -292,13 +292,13 @@ class _FileItemCardState extends State<FileItemCard> with SingleTickerProviderSt
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 11,
-                      color: isDestructive ? Colors.red.withValues(alpha: 0.5) : Colors.grey,
+                      color: isDestructive ? Colors.red.withValues(alpha: 0.5) : Theme.of(context).hintColor,
                     ),
                   ),
                 ],
               ),
             ),
-            Icon(Icons.chevron_right_rounded, color: Colors.grey.withValues(alpha: 0.3), size: 20),
+            Icon(Icons.chevron_right_rounded, color: Theme.of(context).dividerColor, size: 20),
           ],
         ),
       ),
@@ -378,7 +378,7 @@ class _FileItemCardState extends State<FileItemCard> with SingleTickerProviderSt
                     ),
                     subtitle: Text(
                       '${widget.file.sizeString} • ${widget.file.modified.day}/${widget.file.modified.month}/${widget.file.modified.year}',
-                      style: TextStyle(color: Colors.grey[600], fontSize: 11, fontWeight: FontWeight.bold),
+                      style: TextStyle(color: Theme.of(context).hintColor, fontSize: 11, fontWeight: FontWeight.bold),
                     ),
                   ),
                 ),

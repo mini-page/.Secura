@@ -24,6 +24,26 @@ class _VaultShellState extends ConsumerState<VaultShell> with WidgetsBindingObse
   int _currentIndex = 0;
   bool _isBottomNavVisible = true;
   DateTime? _pausedTime;
+  DateTime? _lastBackPress;
+
+  Future<bool> _onWillPop() async {
+    final now = DateTime.now();
+    if (_lastBackPress != null && now.difference(_lastBackPress!) < const Duration(seconds: 2)) {
+      return true;
+    }
+    _lastBackPress = now;
+    if (!mounted) return false;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Text('Tap again to exit'),
+        duration: const Duration(seconds: 2),
+        behavior: SnackBarBehavior.floating,
+        margin: const EdgeInsets.all(16),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+    );
+    return false;
+  }
 
   @override
   void initState() {
@@ -81,12 +101,21 @@ class _VaultShellState extends ConsumerState<VaultShell> with WidgetsBindingObse
     ];
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    const accentColor = Color(0xFF575992);
+    final accentColor = Theme.of(context).colorScheme.primary;
 
-    return Scaffold(
-      extendBody: true,
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      body: Stack(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
+        final shouldPop = await _onWillPop();
+        if (shouldPop && context.mounted) {
+          Navigator.of(context).maybePop();
+        }
+      },
+      child: Scaffold(
+        extendBody: true,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        body: Stack(
         children: [
           // Main Content
           NotificationListener<UserScrollNotification>(
@@ -163,7 +192,7 @@ class _VaultShellState extends ConsumerState<VaultShell> with WidgetsBindingObse
                             child: GestureDetector(
                               behavior: HitTestBehavior.opaque,
                               onTap: _pickAndAddFile,
-                              child: const Center(
+                              child: Center(
                                 child: Icon(
                                   Icons.add_circle_outline_rounded,
                                   color: accentColor,
@@ -185,15 +214,16 @@ class _VaultShellState extends ConsumerState<VaultShell> with WidgetsBindingObse
           ),
         ],
       ),
+      ),
     );
   }
 
   Widget _buildNavItem(IconData icon, IconData selectedIcon, int index, Color accentColor) {
     final isSelected = _currentIndex == index;
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final color = isSelected 
-        ? (isDark ? Colors.black : Colors.white) 
-        : Colors.grey;
+    final color = isSelected
+        ? (isDark ? Colors.black : Colors.white)
+        : (isDark ? Colors.white70 : Colors.grey);
 
     return Expanded(
       child: GestureDetector(

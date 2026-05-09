@@ -13,6 +13,7 @@ class StorageService {
   static const _saltKey = 'user_salt';
   static const _userKey = 'user_profile_';
   static const _themeKey = 'app_theme_mode';
+  static const _themeIdKey = 'app_theme_id';
   static const _strict2faKey = 'strict_2fa_mode';
   static const _autoLockKey = 'auto_lock_timeout';
 
@@ -108,6 +109,14 @@ class StorageService {
       (e) => e.name == value,
       orElse: () => ThemeMode.light,
     );
+  }
+
+  Future<void> saveThemeId(String id) async {
+    await saveSecureData(_themeIdKey, id);
+  }
+
+  Future<String?> getThemeId() async {
+    return await getSecureData(_themeIdKey);
   }
 
   Future<Map<String, dynamic>> getAllSettings() async {

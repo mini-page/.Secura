@@ -27,8 +27,8 @@ class _AuthScreenState extends ConsumerState<AuthScreen> with SingleTickerProvid
   final _logger = ActivityLogger();
   String _pin = '';
   String? _firstPin;
-  String _message = '';
-  String _subMessage = '';
+  String _message = 'Enter your PIN';
+  String _subMessage = 'Please enter your current vault PIN';
   bool _isVerifying = false;
   late List<String> _keys;
 
@@ -66,10 +66,12 @@ class _AuthScreenState extends ConsumerState<AuthScreen> with SingleTickerProvid
   @override
   void initState() {
     super.initState();
-    _selectedQuestion = _securityQuestions.first; // Default to first question
-    _checkExistingPin();
-    _randomizeKeys();
+    _selectedQuestion = _securityQuestions.first;
+    _keys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'];
+    _keys.shuffle(Random());
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+    // Check PIN in background without blocking UI
+    WidgetsBinding.instance.addPostFrameCallback((_) => _checkExistingPin());
   }
 
   Future<void> _checkExistingPin() async {
@@ -361,7 +363,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> with SingleTickerProvid
                     Text(
                       _subMessage,
                       textAlign: TextAlign.center,
-                      style: const TextStyle(color: Colors.grey, fontWeight: FontWeight.bold, fontSize: 11),
+                      style: TextStyle(color: Theme.of(context).textTheme.bodySmall?.color ?? Colors.grey, fontWeight: FontWeight.bold, fontSize: 11),
                     ),
                     const SizedBox(height: 24),
                     _buildPinDisplay(),
@@ -492,31 +494,35 @@ class _AuthScreenState extends ConsumerState<AuthScreen> with SingleTickerProvid
           children: [
             Icon(Icons.warning_amber_rounded, color: Colors.red, size: 28),
             SizedBox(width: 12),
-            Text('PIN Reset Warning', style: TextStyle(fontWeight: FontWeight.w900)),
+            Flexible(
+              child: Text('PIN Reset Warning', style: TextStyle(fontWeight: FontWeight.w900), overflow: TextOverflow.ellipsis),
+            ),
           ],
         ),
-        content: const Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              '⚠️ CRITICAL: Resetting your PIN will make ALL currently encrypted files UNRECOVERABLE.',
-              style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red),
-            ),
-            SizedBox(height: 12),
-            Text(
-              'This happens because your files are encrypted with your old PIN-derived key. '
-              'Without the original PIN, the encryption key cannot be recreated.',
-            ),
-            SizedBox(height: 12),
-            Text(
-              'Before proceeding:',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            Text('• Export your files while you still know your PIN'),
-            Text('• Ensure you remember your security answer'),
-            Text('• Consider writing down your current PIN'),
-          ],
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                '⚠️ CRITICAL: Resetting your PIN will make ALL currently encrypted files UNRECOVERABLE.',
+                style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red),
+              ),
+              const SizedBox(height: 12),
+              const Text(
+                'This happens because your files are encrypted with your old PIN-derived key. '
+                'Without the original PIN, the encryption key cannot be recreated.',
+              ),
+              const SizedBox(height: 12),
+              const Text(
+                'Before proceeding:',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              const Text('• Export your files while you still know your PIN'),
+              const Text('• Ensure you remember your security answer'),
+              const Text('• Consider writing down your current PIN'),
+            ],
+          ),
         ),
         actions: [
           TextButton(
@@ -652,7 +658,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> with SingleTickerProvid
           decoration: BoxDecoration(
             color: isActive 
                 ? Theme.of(context).primaryColor.withValues(alpha: 0.1) 
-                : (isFilled ? Theme.of(context).primaryColor.withValues(alpha: 0.05) : Colors.grey.withValues(alpha: 0.1)),
+                : (isFilled ? Theme.of(context).primaryColor.withValues(alpha: 0.05) : Theme.of(context).dividerColor),
             borderRadius: BorderRadius.circular(14),
             border: Border.all(
               color: isActive ? Theme.of(context).primaryColor : Colors.transparent,
@@ -730,11 +736,11 @@ class _AuthScreenState extends ConsumerState<AuthScreen> with SingleTickerProvid
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             color: Theme.of(context).cardTheme.color,
-            border: Border.all(color: Colors.grey.withValues(alpha: 0.1), width: 1),
+            border: Border.all(color: Theme.of(context).dividerColor, width: 1),
           ),
           alignment: Alignment.center,
           child: isIcon 
-              ? const Icon(Icons.backspace_rounded, size: 18, color: Colors.grey) 
+              ? Icon(Icons.backspace_rounded, size: 18, color: Theme.of(context).hintColor) 
               : Text(
                   label, 
                   style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900),

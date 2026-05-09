@@ -68,11 +68,11 @@ class _ActivityLogsScreenState extends State<ActivityLogsScreen> {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.history_rounded, size: 80, color: Colors.grey.withValues(alpha: 0.2)),
+                          Icon(Icons.history_rounded, size: 80, color: Theme.of(context).hintColor.withValues(alpha: 0.2)),
                           const SizedBox(height: 16),
-                          const Text(
+                          Text(
                             'No activity recorded yet',
-                            style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey),
+                            style: TextStyle(fontWeight: FontWeight.bold, color: Theme.of(context).hintColor),
                           ),
                         ],
                       ),

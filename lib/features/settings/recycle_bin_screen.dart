@@ -44,11 +44,11 @@ class RecycleBinScreen extends ConsumerWidget {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.delete_outline_rounded, size: 80, color: Colors.grey.withValues(alpha: 0.2)),
+                          Icon(Icons.delete_outline_rounded, size: 80, color: Theme.of(context).hintColor.withValues(alpha: 0.2)),
                           const SizedBox(height: 16),
-                          const Text(
+                          Text(
                             'Your recycle bin is empty',
-                            style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey),
+                            style: TextStyle(fontWeight: FontWeight.bold, color: Theme.of(context).hintColor),
                           ),
                         ],
                       ),

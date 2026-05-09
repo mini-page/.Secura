@@ -70,17 +70,23 @@ class HomeScreen extends ConsumerWidget with FileActionHandler {
           ),
           
           const SizedBox(height: 32),
-          Text(
-            'LOCKER', 
-            style: Theme.of(context).textTheme.titleSmall?.copyWith(
-              fontWeight: FontWeight.w900, 
-              letterSpacing: 4, 
-              color: Colors.grey[600],
-              fontSize: 12,
-            ),
+          Row(
+            children: [
+              Text(
+                'LOCKER',
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 4,
+                  color: Theme.of(context).hintColor,
+                  fontSize: 12,
+                ),
+              ),
+              const Spacer(),
+              _FilterChips(),
+            ],
           ),
           const SizedBox(height: 16),
-          
+
           vaultState.when(
             data: (files) {
               if (files.isEmpty) {
@@ -108,6 +114,55 @@ class HomeScreen extends ConsumerWidget with FileActionHandler {
           const SizedBox(height: 100), // Extra space for floating nav
         ],
       ),
+    );
+  }
+}
+
+class _FilterChips extends ConsumerWidget {
+  const _FilterChips();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final currentFilter = ref.watch(vaultFilterProvider);
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: VaultFilter.values.map((filter) {
+        final isSelected = currentFilter == filter;
+        return Padding(
+          padding: const EdgeInsets.only(left: 8),
+          child: GestureDetector(
+            onTap: () => ref.read(vaultFilterProvider.notifier).setFilter(filter),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: isSelected
+                    ? Theme.of(context).primaryColor.withValues(alpha: 0.15)
+                    : Colors.transparent,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: isSelected
+                      ? Theme.of(context).primaryColor
+                      : Theme.of(context).dividerColor,
+                ),
+              ),
+              child: Text(
+                filter == VaultFilter.all
+                    ? 'All'
+                    : (filter == VaultFilter.encrypted ? 'Encrypted' : 'Decrypted'),
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w900,
+                  color: isSelected
+                      ? Theme.of(context).primaryColor
+                      : Theme.of(context).hintColor,
+                ),
+              ),
+            ),
+          ),
+        );
+      }).toList(),
     );
   }
 }

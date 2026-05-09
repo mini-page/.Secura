@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:secure_application/secure_application.dart';
 
-import 'core/theme/app_theme.dart';
 import 'core/theme/theme_provider.dart';
 import 'features/splash/splash_screen.dart';
 import 'core/services/google_auth_service.dart';
@@ -28,14 +27,14 @@ class SecuraApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final themeMode = ref.watch(themeProvider);
+    final theme = ref.watch(themeProvider);
 
     return MaterialApp(
       title: 'Secura',
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.lightTheme,
-      darkTheme: AppTheme.darkTheme,
-      themeMode: themeMode,
+      theme: theme.themeData,
+      darkTheme: theme.themeData,
+      themeMode: theme.isDark ? ThemeMode.dark : ThemeMode.light,
       builder: (context, child) {
         return SecureApplication(
           onNeedUnlock: (secure) => null,

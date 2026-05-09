@@ -84,7 +84,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(user?.name ?? 'Secura User', style: Theme.of(context).textTheme.titleLarge),
-                              Text(user?.email ?? 'No Identity Attached', style: const TextStyle(color: Colors.grey, fontSize: 13, fontWeight: FontWeight.bold)),
+                              Text(user?.email ?? 'No Identity Attached', style: TextStyle(color: Theme.of(context).hintColor, fontSize: 13, fontWeight: FontWeight.bold)),
                             ],
                           ),
                         ),
@@ -122,9 +122,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           ),
 
           const SizedBox(height: 24),
-          Text('APPEARANCE', style: Theme.of(context).textTheme.titleSmall?.copyWith(letterSpacing: 1.5, color: Colors.grey, fontSize: 11, fontWeight: FontWeight.w900)),
+          Text('APPEARANCE', style: Theme.of(context).textTheme.titleSmall?.copyWith(letterSpacing: 1.5, color: Theme.of(context).hintColor, fontSize: 11, fontWeight: FontWeight.w900)),
           const SizedBox(height: 12),
-          ThemeModeSelector(
+          ThemePresetSelector(
             selected: selectedTheme,
             onChanged: (newTheme) {
               ref.read(themeProvider.notifier).setTheme(newTheme);
@@ -132,13 +132,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           ),
 
           const SizedBox(height: 24),
-          Text('CLOUD SYNC', style: Theme.of(context).textTheme.titleSmall?.copyWith(letterSpacing: 1.5, color: Colors.grey, fontSize: 11, fontWeight: FontWeight.w900)),
+          Text('CLOUD SYNC', style: Theme.of(context).textTheme.titleSmall?.copyWith(letterSpacing: 1.5, color: Theme.of(context).hintColor, fontSize: 11, fontWeight: FontWeight.w900)),
           const SizedBox(height: 12),
           Card(
             child: ListTile(
               leading: Icon(_isBackingUp ? Icons.sync_rounded : Icons.cloud_upload_rounded, color: Theme.of(context).primaryColor),
               title: const Text('Backup to Google Drive', style: TextStyle(fontWeight: FontWeight.w700)),
-              subtitle: const Text('Save your settings and profile safely', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey)),
+              subtitle: Text('Save your settings and profile safely', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Theme.of(context).hintColor)),
               trailing: _isBackingUp 
                 ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
                 : const Icon(Icons.arrow_forward_ios_rounded, size: 14),
@@ -147,7 +147,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           ),
 
           const SizedBox(height: 24),
-          Text('SECURITY', style: Theme.of(context).textTheme.titleSmall?.copyWith(letterSpacing: 1.5, color: Colors.grey, fontSize: 11, fontWeight: FontWeight.w900)),
+          Text('SECURITY', style: Theme.of(context).textTheme.titleSmall?.copyWith(letterSpacing: 1.5, color: Theme.of(context).hintColor, fontSize: 11, fontWeight: FontWeight.w900)),
           const SizedBox(height: 12),
           AppToggleTile(
             title: 'Strict 2FA Mode',
@@ -258,10 +258,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           ),
 
           const SizedBox(height: 40),
-          const Center(
+          Center(
             child: Text(
               'SECURA PRIVACY PROTOCOL v1.0',
-              style: TextStyle(fontSize: 10, letterSpacing: 1.5, color: Colors.grey, fontWeight: FontWeight.w900),
+              style: TextStyle(fontSize: 10, letterSpacing: 1.5, color: Theme.of(context).hintColor, fontWeight: FontWeight.w900),
             ),
           ),
           const SizedBox(height: 100),
@@ -274,7 +274,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     return Column(
       children: [
         Text(value, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
-        Text(label, style: const TextStyle(fontSize: 9, color: Colors.grey, letterSpacing: 1, fontWeight: FontWeight.w900)),
+        Text(label, style: TextStyle(fontSize: 9, color: Theme.of(context).hintColor, letterSpacing: 1, fontWeight: FontWeight.w900)),
       ],
     );
   }

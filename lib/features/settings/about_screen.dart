@@ -22,7 +22,7 @@ class AboutScreen extends StatelessWidget {
                 Image.asset('assets/app_brand.png', width: 140, height: 140),
                 const SizedBox(height: 20),
                 Text('SECURA VAULT', style: Theme.of(context).textTheme.headlineLarge),
-                const Text('V1.0.0 STABLE', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.w900, letterSpacing: 2, fontSize: 12)),
+                Text('V1.0.0 STABLE', style: TextStyle(color: Theme.of(context).hintColor, fontWeight: FontWeight.w900, letterSpacing: 2, fontSize: 12)),
               ],
             ),
           ),

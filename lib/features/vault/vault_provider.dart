@@ -50,36 +50,69 @@ class SearchQueryNotifier extends Notifier<String> {
   }
 }
 
+enum VaultFilter { all, encrypted, decrypted }
+
+final vaultFilterProvider = NotifierProvider<VaultFilterNotifier, VaultFilter>(VaultFilterNotifier.new);
+
+class VaultFilterNotifier extends Notifier<VaultFilter> {
+  @override
+  VaultFilter build() => VaultFilter.all;
+
+  void setFilter(VaultFilter filter) {
+    state = filter;
+  }
+}
+
 final filteredVaultProvider = Provider<AsyncValue<List<VaultFile>>>((ref) {
   final vaultState = ref.watch(vaultProvider);
   final query = ref.watch(searchQueryProvider).toLowerCase();
+  final filter = ref.watch(vaultFilterProvider);
 
   return vaultState.whenData((files) {
-    if (query.isEmpty) return files;
-    return files.where((file) {
-      final name = file.isEncrypted
-          ? file.name.replaceAll('.secura', '').toLowerCase()
-          : file.name.toLowerCase();
-      return name.contains(query);
-    }).toList();
+    var filtered = files;
+
+    // Apply search
+    if (query.isNotEmpty) {
+      filtered = filtered.where((file) {
+        final name = file.isEncrypted
+            ? file.name.replaceAll('.secura', '').toLowerCase()
+            : file.name.toLowerCase();
+        return name.contains(query);
+      }).toList();
+    }
+
+    // Apply filter
+    if (filter == VaultFilter.encrypted) {
+      filtered = filtered.where((file) => file.isEncrypted).toList();
+    } else if (filter == VaultFilter.decrypted) {
+      filtered = filtered.where((file) => !file.isEncrypted).toList();
+    }
+
+    return filtered;
   });
 });
 
 final vaultProvider = AsyncNotifierProvider<VaultNotifier, List<VaultFile>>(VaultNotifier.new);
 
 class VaultNotifier extends AsyncNotifier<List<VaultFile>> {
-  late final FileVaultService _service;
+  FileVaultService? _service;
+
+  FileVaultService get service {
+    if (_service == null) {
+      _service = ref.read(fileVaultServiceProvider);
+    }
+    return _service!;
+  }
 
   @override
   Future<List<VaultFile>> build() async {
-    _service = ref.watch(fileVaultServiceProvider);
-    return _service.listFiles();
+    return service.listFiles();
   }
 
   Future<void> refresh() async {
     state = const AsyncValue.loading();
     try {
-      final files = await _service.listFiles();
+      final files = await service.listFiles();
       state = AsyncValue.data(files);
       ref.read(lastErrorProvider.notifier).state = null;
     } catch (e, st) {
@@ -91,7 +124,7 @@ class VaultNotifier extends AsyncNotifier<List<VaultFile>> {
   Future<bool> addFile(File source, {required bool encrypt}) async {
     ref.read(vaultOperationStatusProvider.notifier).state = VaultOperationStatus.loading;
     try {
-      await _service.addFile(source, encrypt: encrypt);
+      await service.addFile(source, encrypt: encrypt);
       await refresh();
       ref.read(vaultOperationStatusProvider.notifier).state = VaultOperationStatus.success;
       return true;
@@ -109,7 +142,7 @@ class VaultNotifier extends AsyncNotifier<List<VaultFile>> {
   Future<bool> deleteFile(VaultFile file) async {
     ref.read(vaultOperationStatusProvider.notifier).state = VaultOperationStatus.loading;
     try {
-      await _service.deleteFile(file);
+      await service.deleteFile(file);
       await refresh();
       ref.read(vaultOperationStatusProvider.notifier).state = VaultOperationStatus.success;
       return true;
@@ -127,7 +160,7 @@ class VaultNotifier extends AsyncNotifier<List<VaultFile>> {
   Future<bool> encryptExistingFile(VaultFile file) async {
     ref.read(vaultOperationStatusProvider.notifier).state = VaultOperationStatus.loading;
     try {
-      await _service.encryptFile(file);
+      await service.encryptFile(file);
       await refresh();
       ref.read(vaultOperationStatusProvider.notifier).state = VaultOperationStatus.success;
       return true;
@@ -146,20 +179,24 @@ class VaultNotifier extends AsyncNotifier<List<VaultFile>> {
 final recycleBinProvider = AsyncNotifierProvider<RecycleBinNotifier, List<VaultFile>>(RecycleBinNotifier.new);
 
 class RecycleBinNotifier extends AsyncNotifier<List<VaultFile>> {
-  late final FileVaultService _service;
-  late final Ref _ref;
+  FileVaultService? _service;
+
+  FileVaultService get service {
+    if (_service == null) {
+      _service = ref.read(fileVaultServiceProvider);
+    }
+    return _service!;
+  }
 
   @override
   Future<List<VaultFile>> build() async {
-    _service = ref.watch(fileVaultServiceProvider);
-    _ref = ref;
-    return _service.listRecycleBin();
+    return service.listRecycleBin();
   }
 
   Future<void> refresh() async {
     state = const AsyncValue.loading();
     try {
-      final files = await _service.listRecycleBin();
+      final files = await service.listRecycleBin();
       state = AsyncValue.data(files);
     } catch (e, st) {
       state = AsyncValue.error(e, st);
@@ -168,9 +205,9 @@ class RecycleBinNotifier extends AsyncNotifier<List<VaultFile>> {
 
   Future<bool> restoreFile(VaultFile file) async {
     try {
-      await _service.restoreFromRecycleBin(file);
+      await service.restoreFromRecycleBin(file);
       await refresh();
-      _ref.read(vaultProvider.notifier).refresh();
+      ref.read(vaultProvider.notifier).refresh();
       return true;
     } on VaultException catch (e) {
       ref.read(lastErrorProvider.notifier).state = e.displayMessage;
@@ -183,7 +220,7 @@ class RecycleBinNotifier extends AsyncNotifier<List<VaultFile>> {
 
   Future<bool> permanentlyDelete(VaultFile file) async {
     try {
-      await _service.permanentlyDeleteFile(file);
+      await service.permanentlyDeleteFile(file);
       await refresh();
       return true;
     } on VaultException catch (e) {
@@ -197,7 +234,7 @@ class RecycleBinNotifier extends AsyncNotifier<List<VaultFile>> {
 
   Future<bool> emptyBin() async {
     try {
-      await _service.emptyRecycleBin();
+      await service.emptyRecycleBin();
       await refresh();
       return true;
     } on VaultException catch (e) {
