@@ -6,3 +6,6 @@ export 'primary_cta_button.dart';
 export 'theme_mode_selector.dart';
 export 'team_accordion.dart';
 export 'secura_notifications.dart';
+export 'tour/tour_controller.dart';
+export 'tour/tour_overlay.dart';
+export 'tour/tour_tooltip.dart';

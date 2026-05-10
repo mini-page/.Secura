@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:open_file/open_file.dart';
 import 'package:share_plus/share_plus.dart';
 
+import 'package:file_picker/file_picker.dart';
 import '../components/secura_notifications.dart';
 import '../components/file_item_card.dart'; // This contains FileAction
 import '../features/vault/vault_file_model.dart';
@@ -52,23 +53,37 @@ mixin FileActionHandler {
         _showSuccess(context, 'File encrypted successfully');
         break;
 
+      case FileAction.decrypt:
+        await ref.read(vaultProvider.notifier).decryptExistingFile(file);
+        if (!context.mounted) return;
+        _showSuccess(context, 'File decrypted successfully');
+        break;
+
       case FileAction.restore:
         final route = await showDialog<String>(
           context: context,
           builder: (context) => AlertDialog(
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(32)),
-            title: const Text('Restoration Protocol', style: TextStyle(fontWeight: FontWeight.w900)), 
+            title: const Text('Export Protocol', style: TextStyle(fontWeight: FontWeight.w900)), 
             content: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Text('Choose your restoration destination:'),
+                const Text('Choose where to export a decrypted copy:'),
                 const SizedBox(height: 16),
                 _buildRouteOption(
                   context,
                   Icons.download_rounded,
-                  'Local Download',
-                  'Move to device Downloads folder',
+                  'Default Downloads',
+                  'Export to system Downloads folder',
                   () => Navigator.pop(context, 'local'),
+                ),
+                const SizedBox(height: 12),
+                _buildRouteOption(
+                  context,
+                  Icons.folder_open_rounded,
+                  'Custom Folder',
+                  'Choose a specific folder on your device',
+                  () => Navigator.pop(context, 'custom'),
                 ),
                 const SizedBox(height: 12),
                 _buildRouteOption(
@@ -84,22 +99,36 @@ mixin FileActionHandler {
           ),
         );
 
-        if (!context.mounted) return;
-        if (route == 'local') {
-          _showLoading(context);
+        String? selectedPath;
+        if (route == 'custom') {
           try {
-            await ref.read(fileVaultServiceProvider).restoreFile(file);
-            await ref.read(vaultProvider.notifier).refresh();
-            if (!context.mounted) return;
-            Navigator.pop(context); // Close loading
-            _showSuccess(context, 'File restored to Downloads folder');
+            // Direct static access in version 11.x
+            selectedPath = await FilePicker.getDirectoryPath();
+            if (selectedPath == null) return; // User cancelled
           } catch (e) {
             if (!context.mounted) return;
-            Navigator.pop(context); // Close loading
-            _showError(context, 'Failed to restore file: $e');
+            _showError(context, 'Permission denied or folder inaccessible.');
+            return;
           }
         }
+
+        _showLoading(context);
+        try {
+          // Pass the WidgetRef to access providers inside restoreFile if needed
+          await ref.read(fileVaultServiceProvider).restoreFile(file, customPath: selectedPath);
+          await ref.read(vaultProvider.notifier).refresh();
+          
+          if (!context.mounted) return;
+          Navigator.pop(context); // Close loading
+          
+          _showSuccess(context, 'File exported successfully');
+        } catch (e) {
+          if (!context.mounted) return;
+          Navigator.pop(context); // Close loading
+          _showError(context, 'Failed to export file: $e');
+        }
         break;
+
       case FileAction.delete:
         final confirm = await showDialog<bool>(
           context: context,

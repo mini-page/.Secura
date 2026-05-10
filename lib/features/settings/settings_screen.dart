@@ -42,6 +42,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
           // Profile & Cloud Sync Card merged
           ShimmerCard(
+            key: TourKeys.profileCard,
             child: Card(
               child: Column(
                 children: [

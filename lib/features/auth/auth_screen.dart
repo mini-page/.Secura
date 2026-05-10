@@ -49,7 +49,10 @@ class _AuthScreenState extends ConsumerState<AuthScreen> with SingleTickerProvid
   bool _isVerifyingOldPin = false;
   bool _oldPinVerified = false;
   String? _selectedQuestion;
+  String? _answerError;
   final _answerController = TextEditingController();
+
+  final _recoveryRegex = RegExp(r'^[A-Za-z0-9_-]{4,}$');
 
   // Expanded security questions for better security
   final List<String> _securityQuestions = [
@@ -70,8 +73,31 @@ class _AuthScreenState extends ConsumerState<AuthScreen> with SingleTickerProvid
     _keys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'];
     _keys.shuffle(Random());
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+
+    _answerController.addListener(_validateAnswer);
+
     // Check PIN in background
     WidgetsBinding.instance.addPostFrameCallback((_) => _checkExistingPin());
+  }
+
+  void _validateAnswer() {
+    if (!_isSettingUpSecurityQuestion) return;
+    
+    final text = _answerController.text;
+    if (text.isEmpty) {
+      setState(() => _answerError = null);
+      return;
+    }
+
+    if (text.contains(' ')) {
+      setState(() => _answerError = 'Spaces are not allowed. Use JohnSnow instead.');
+    } else if (text.length < 4) {
+      setState(() => _answerError = 'Minimum 4 characters required.');
+    } else if (!_recoveryRegex.hasMatch(text)) {
+      setState(() => _answerError = 'Only letters, numbers, _ and - allowed.');
+    } else {
+      setState(() => _answerError = null);
+    }
   }
 
   Future<void> _checkExistingPin() async {
@@ -97,6 +123,8 @@ class _AuthScreenState extends ConsumerState<AuthScreen> with SingleTickerProvid
 
   @override
   void dispose() {
+    _answerController.removeListener(_validateAnswer);
+    _answerController.dispose();
     _lockoutTimer?.cancel();
     _securityLockoutTimer?.cancel();
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
@@ -241,9 +269,12 @@ class _AuthScreenState extends ConsumerState<AuthScreen> with SingleTickerProvid
           setState(() {
             _isVerifying = false;
             _isSettingUpSecurityQuestion = true;
-            _message = 'Security Question';
+            _message = 'Recovery Setup';
             _subMessage = 'Choose a question for account recovery';
           });
+
+          // Show mandatory info popup
+          _showRecoveryRulesPopup();
         } else {
           HapticFeedback.heavyImpact();
           if (!mounted) return;
@@ -277,6 +308,78 @@ class _AuthScreenState extends ConsumerState<AuthScreen> with SingleTickerProvid
 
       _handleFailure();
     }
+  }
+
+  void _showRecoveryRulesPopup() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(32)),
+        title: const Text('Recovery Setup Rules', style: TextStyle(fontWeight: FontWeight.w900)),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Your recovery answer is used to recover access if you forget your PIN.', style: TextStyle(fontWeight: FontWeight.bold)),
+              const SizedBox(height: 16),
+              const Text('Rules:'),
+              const Text('• Minimum 4 characters'),
+              const Text('• Single-word answers only'),
+              const Text('• Spaces are NOT allowed'),
+              const SizedBox(height: 12),
+              const Text('Use: JohnSnow, John_Snow'),
+              const Text('NOT: John Snow'),
+              const SizedBox(height: 12),
+              const Text('Important: Answers may be case-sensitive. Use something memorable and exact.', style: TextStyle(color: Colors.orange, fontWeight: FontWeight.bold)),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => _showDetailedRecoveryGuide(),
+            child: const Text('More'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Got it'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showDetailedRecoveryGuide() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(32)),
+        title: const Text('Detailed Guide', style: TextStyle(fontWeight: FontWeight.w900)),
+        content: const SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Good examples:', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.green)),
+              Text('• StarkFamily\n• MyDog2024\n• John_Snow\n• WinterIsComing'),
+              SizedBox(height: 12),
+              Text('Bad examples:', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red)),
+              Text('• John Snow (spaces)\n• my pin (spaces)\n• 123 (too short)\n• abc (too short)'),
+              SizedBox(height: 16),
+              Text('Validation Requirements:', style: TextStyle(fontWeight: FontWeight.bold)),
+              Text('• Minimum 4 characters\n• No spaces allowed\n• Letters, Numbers, _ and - only'),
+              SizedBox(height: 16),
+              Text('⚠️ SECURITY WARNING', style: TextStyle(fontWeight: FontWeight.w900, color: Colors.red)),
+              Text('Do not share your recovery answer. Do not use publicly known information. This method protects your entire account access.'),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Close')),
+        ],
+      ),
+    );
   }
 
   void _handleFailure() {
@@ -384,7 +487,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> with SingleTickerProvid
                 ),
               ),
               
-              if (!widget.isSetup && !_isLockedOut)
+              if (!widget.isSetup && !_isLockedOut && !_isSettingUpSecurityQuestion && !_isVerifyingOldPin)
                 Padding(
                   padding: const EdgeInsets.only(top: 16),
                   child: Column(
@@ -479,6 +582,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> with SingleTickerProvid
               controller: _answerController,
               decoration: InputDecoration(
                 labelText: 'Your Answer',
+                errorText: _answerError,
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
               ),
             ),
@@ -487,7 +591,9 @@ class _AuthScreenState extends ConsumerState<AuthScreen> with SingleTickerProvid
               width: double.infinity,
               height: 56,
               child: ElevatedButton(
-                onPressed: _saveOrVerifySecurityQuestion,
+                onPressed: (_isSettingUpSecurityQuestion && _answerError != null) || _answerController.text.isEmpty
+                    ? null 
+                    : _saveOrVerifySecurityQuestion,
                 style: ElevatedButton.styleFrom(
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                   backgroundColor: Theme.of(context).primaryColor,

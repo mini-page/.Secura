@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../features/vault/vault_provider.dart';
+import 'tour/tour_controller.dart';
 
 class AppHeader extends ConsumerStatefulWidget {
   const AppHeader({required this.title, this.showSearch = true, super.key});
@@ -45,6 +46,7 @@ class _AppHeaderState extends ConsumerState<AppHeader> with SingleTickerProvider
                 const Spacer(),
                 if (widget.showSearch)
                   IconButton(
+                    key: TourKeys.searchIcon,
                     onPressed: () => setState(() => _isSearching = true),
                     icon: const Icon(Icons.search_rounded),
                     style: IconButton.styleFrom(

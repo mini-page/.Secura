@@ -7,8 +7,10 @@ import 'features/vault/import_screen.dart';
 
 import 'core/services/navigation_provider.dart';
 import 'core/services/key_cache_service.dart';
+import 'components/tour/tour_controller.dart';
 import 'features/settings/settings_screen.dart';
 import 'features/settings/settings_provider.dart';
+import 'components/components.dart'; // Ensure components are imported for TourOverlay
 import 'features/auth/auth_screen.dart';
 import 'features/auth/user_provider.dart';
 import 'features/vault/locker_screen.dart';
@@ -165,6 +167,7 @@ class _VaultShellState extends ConsumerState<VaultShell> with WidgetsBindingObse
                       children: [
                         // Main Nav Pill
                         Container(
+                          key: TourKeys.navPill,
                           height: 72,
                           padding: const EdgeInsets.symmetric(horizontal: 8),
                           decoration: BoxDecoration(
@@ -197,6 +200,7 @@ class _VaultShellState extends ConsumerState<VaultShell> with WidgetsBindingObse
                         const SizedBox(width: 16),
                         // Separate Circular FAB
                         GestureDetector(
+                          key: TourKeys.fab,
                           onTap: _pickAndAddFile,
                           child: Container(
                             width: 72,
@@ -230,6 +234,8 @@ class _VaultShellState extends ConsumerState<VaultShell> with WidgetsBindingObse
               ),
             ),
           ),
+          
+          const TourOverlay(),
         ],
       ),
       ),

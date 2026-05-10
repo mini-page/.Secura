@@ -368,6 +368,30 @@ class FileVaultService {
     }
   }
 
+  Future<void> decryptFile(VaultFile file) async {
+    if (!file.isEncrypted) return;
+
+    final source = File(file.path);
+    if (!await source.exists()) {
+      throw VaultException('Source file not found', userMessage: 'The file no longer exists.');
+    }
+
+    try {
+      final bytes = await readFile(file); // This performs decryption
+      final dir = await _lockerDir;
+
+      final encodedName = base64Url.encode(utf8.encode(file.name));
+      final targetPath = p.join(dir.path, encodedName); // No .secura extension
+
+      await File(targetPath).writeAsBytes(bytes);
+      await _secureShred(source);
+      _logger.logEvent('File Decrypted In-App', details: file.name);
+    } catch (e) {
+      if (e is VaultException) rethrow;
+      throw VaultException('Decryption failed: $e', userMessage: 'Could not decrypt the file in the vault.');
+    }
+  }
+
   Future<List<int>> readFile(VaultFile file) async {
     final f = File(file.path);
     if (!await f.exists()) {
@@ -413,32 +437,32 @@ class FileVaultService {
     return tempPath;
   }
 
-  /// Restore file to public storage with proper scoped storage handling
-  Future<String> restoreFile(VaultFile file) async {
-    Directory? publicDir;
+  /// Restore file to a specific directory with integrity verification.
+  /// Non-destructive: Does NOT delete the secure copy from the vault.
+  Future<String> restoreFile(VaultFile file, {String? customPath}) async {
+    Directory? targetDir;
 
-    if (Platform.isAndroid) {
-      try {
-        // Try to use SAF (Storage Access Framework) for Android 10+
-        // For now, use Downloads folder with fallback
-        final downloads = await getExternalStorageDirectories(type: StorageDirectory.downloads);
-        if (downloads != null && downloads.isNotEmpty) {
-          publicDir = downloads.first;
-        }
-
-        // Fallback to legacy path for older Android
-        if (publicDir == null || !await publicDir.exists()) {
-          publicDir = Directory('/storage/emulated/0/Download');
-        }
-      } catch (e) {
-        // Try app's external storage as last resort
-        publicDir = await getExternalStorageDirectory();
-      }
+    if (customPath != null) {
+      targetDir = Directory(customPath);
     } else {
-      publicDir = await getApplicationDocumentsDirectory();
+      if (Platform.isAndroid) {
+        try {
+          final downloads = await getExternalStorageDirectories(type: StorageDirectory.downloads);
+          if (downloads != null && downloads.isNotEmpty) {
+            targetDir = downloads.first;
+          }
+          if (targetDir == null || !await targetDir.exists()) {
+            targetDir = Directory('/storage/emulated/0/Download');
+          }
+        } catch (e) {
+          targetDir = await getExternalStorageDirectory();
+        }
+      } else {
+        targetDir = await getApplicationDocumentsDirectory();
+      }
     }
 
-    if (publicDir == null || !await publicDir.exists()) {
+    if (targetDir == null || !await targetDir.exists()) {
       throw VaultException(
         'No accessible storage found',
         userMessage: 'Could not find a location to save the restored file.',
@@ -448,20 +472,26 @@ class FileVaultService {
     final bytes = await readFile(file);
 
     // Generate unique filename to avoid overwriting
-    final targetPath = p.join(publicDir.path, file.name);
-    var finalPath = targetPath;
+    final targetFilePath = p.join(targetDir.path, file.name);
+    var finalPath = targetFilePath;
     var counter = 1;
     while (await File(finalPath).exists()) {
       final nameParts = p.basenameWithoutExtension(file.name);
       final ext = p.extension(file.name);
-      finalPath = p.join(publicDir.path, '${nameParts}_$counter$ext');
+      finalPath = p.join(targetDir.path, '${nameParts}_$counter$ext');
       counter++;
     }
 
     try {
-      await File(finalPath).writeAsBytes(bytes);
-      await deleteFile(file);
-      _logger.logEvent('File Restored to Public Storage', details: file.name);
+      final restoredFile = File(finalPath);
+      await restoredFile.writeAsBytes(bytes);
+      
+      // Verify integrity
+      if (!await restoredFile.exists()) {
+        throw Exception('File write failed verification');
+      }
+
+      _logger.logEvent('File Restored (Exported)', details: file.name);
       return finalPath;
     } catch (e) {
       throw VaultException(

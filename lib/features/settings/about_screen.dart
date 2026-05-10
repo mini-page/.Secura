@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:secura/components/components.dart';
 
-class AboutScreen extends StatelessWidget {
+class AboutScreen extends ConsumerWidget {
   const AboutScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('About Secura', style: TextStyle(fontWeight: FontWeight.w900)),
@@ -155,6 +156,24 @@ class AboutScreen extends StatelessWidget {
           Card(
             child: Column(
               children: [
+                ListTile(
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+                  leading: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(Icons.refresh_rounded, color: Theme.of(context).primaryColor, size: 22),
+                  ),
+                  title: const Text('Restart Guided Tour', style: TextStyle(fontWeight: FontWeight.w800)),
+                  subtitle: const Text('Re-learn the Secura workflow', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey)),
+                  onTap: () {
+                    ref.read(tourProvider.notifier).restartTour();
+                    Navigator.pop(context);
+                  },
+                ),
+                const Divider(height: 1, indent: 70),
                 _buildSupportTile(Icons.star_rounded, 'Rate on App Store', Colors.amber),
                 const Divider(height: 1, indent: 70),
                 _buildSupportTile(Icons.favorite_rounded, 'Donate to Secura', Colors.red),

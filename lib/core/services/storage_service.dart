@@ -19,8 +19,17 @@ class StorageService {
   static const _biometricKey = 'biometric_enabled';
   static const _sessionKey = 'session_key';
   static const _encryptionModeKey = 'encryption_mode';
+  static const _tourCompletedKey = 'app_tour_completed';
 
-  // Encryption mode: 'simple' or 'advanced'
+  // Tour Persistence
+  Future<void> setTourCompleted(bool value) async {
+    await saveSecureData(_tourCompletedKey, value.toString());
+  }
+
+  Future<bool> getTourCompleted() async {
+    final value = await getSecureData(_tourCompletedKey);
+    return value == 'true';
+  }
   Future<void> setEncryptionMode(String mode) async {
     await saveSecureData(_encryptionModeKey, mode);
   }

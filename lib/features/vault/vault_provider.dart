@@ -257,11 +257,41 @@ class VaultNotifier extends AsyncNotifier<List<VaultFile>> {
     }
   }
 
+  Future<bool> decryptExistingFile(VaultFile file) async {
+    ref.read(vaultOperationStatusProvider.notifier).state = VaultOperationStatus.loading;
+    try {
+      await service.decryptFile(file);
+      await refresh();
+      ref.read(vaultOperationStatusProvider.notifier).state = VaultOperationStatus.success;
+      return true;
+    } on VaultException catch (e) {
+      ref.read(lastErrorProvider.notifier).state = e.displayMessage;
+      ref.read(vaultOperationStatusProvider.notifier).state = VaultOperationStatus.error;
+      return false;
+    } catch (e) {
+      ref.read(lastErrorProvider.notifier).state = 'Failed to decrypt file';
+      ref.read(vaultOperationStatusProvider.notifier).state = VaultOperationStatus.error;
+      return false;
+    }
+  }
+
   Future<int> batchEncrypt(List<VaultFile> files) async {
     int successCount = 0;
     for (final file in files) {
       if (!file.isEncrypted) {
         if (await encryptExistingFile(file)) {
+          successCount++;
+        }
+      }
+    }
+    return successCount;
+  }
+
+  Future<int> batchDecrypt(List<VaultFile> files) async {
+    int successCount = 0;
+    for (final file in files) {
+      if (file.isEncrypted) {
+        if (await decryptExistingFile(file)) {
           successCount++;
         }
       }

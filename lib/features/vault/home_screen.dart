@@ -42,6 +42,7 @@ class HomeScreen extends ConsumerWidget with FileActionHandler {
                 child: Transform.translate(offset: Offset(0, 20 * (1 - value)), child: child),
               ),
               child: ShimmerCard(
+                key: TourKeys.homeCard,
                 child: Card(
                   child: Padding(
                     padding: const EdgeInsets.all(24),

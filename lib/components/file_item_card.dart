@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../features/vault/vault_file_model.dart';
 
-enum FileAction { open, share, encrypt, restore, delete, info }
+enum FileAction { open, share, encrypt, decrypt, restore, delete, info }
 
 /// File type categories for icon display
 enum FileType { image, video, audio, document, pdf, spreadsheet, archive, code, unknown }
@@ -241,8 +241,10 @@ class _FileItemCardState extends State<FileItemCard> with SingleTickerProviderSt
               _buildActionItem(context, FileAction.share, Icons.share_rounded, 'Share Copy', 'Export a decrypted copy'),
               _buildActionItem(context, FileAction.info, Icons.info_outline_rounded, 'File Details', 'View file information'),
               if (!widget.file.isEncrypted)
-                _buildActionItem(context, FileAction.encrypt, Icons.lock_outline_rounded, 'Encrypt Now', 'Protect with AES-256'),
-              _buildActionItem(context, FileAction.restore, Icons.settings_backup_restore_rounded, 'Restore File', 'Move back to public storage'),
+                _buildActionItem(context, FileAction.encrypt, Icons.lock_outline_rounded, 'Encrypt Now', 'Protect with AES-256')
+              else
+                _buildActionItem(context, FileAction.decrypt, Icons.lock_open_rounded, 'Decrypt In-App', 'Keep file in vault but decrypt it'),
+              _buildActionItem(context, FileAction.restore, Icons.settings_backup_restore_rounded, 'Export to System', 'Move decrypted copy to storage'),
               _buildActionItem(context, FileAction.delete, Icons.delete_outline_rounded, 'Delete Permanently', 'Wipe from device', isDestructive: true),
               const SizedBox(height: 24),
             ],

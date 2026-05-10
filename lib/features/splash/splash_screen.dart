@@ -22,40 +22,61 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   Future<void> _navigateToNext() async {
-    await Future.delayed(const Duration(milliseconds: 800));
+    // Exact Splash Duration: 400ms
+    await Future.delayed(const Duration(milliseconds: 400));
     if (!mounted) return;
 
-    // Refresh Google Session
+    // 1. Refresh Google Session
     await GoogleAuthService.signInSilently();
-
-    final authHash = await _storage.getAuthHash();
     final user = await _storage.getCurrentUser();
 
+    // 2. Check Permissions (Handled in Onboarding or Auth, but Splash routes if missing)
+    
+    // 3. Check Security Status
+    final authHash = await _storage.getAuthHash();
+
     if (!mounted) return;
 
-    if (authHash != null && user != null) {
-      _goToAuth();
-    } else {
+    // STRICT SEQUENTIAL FLOW
+    if (user == null) {
+      // Step 1 & 2: Onboarding & Google Login
       _goToOnboarding();
+    } else if (authHash == null) {
+      // Step 3: PIN Setup
+      _goToPinSetup();
+    } else if (user.securityQuestion == null) {
+      // Step 4: Recovery Setup
+      _goToRecoverySetup();
+    } else {
+      // Final: Enter App
+      _goToAuth();
     }
   }
 
   void _goToOnboarding() {
     Navigator.of(context).pushReplacement(
-      MaterialPageRoute(
-        builder: (context) => const OnboardingScreen(),
-      ),
+      MaterialPageRoute(builder: (context) => const OnboardingScreen()),
+    );
+  }
+
+  void _goToPinSetup() {
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(builder: (context) => const AuthScreen(isSetup: true)),
+    );
+  }
+
+  void _goToRecoverySetup() {
+    // Route to AuthScreen in setup mode, but it will internally detect it needs recovery
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(builder: (context) => const AuthScreen(isSetup: true)),
     );
   }
 
   void _goToAuth() {
     Navigator.of(context).pushReplacement(
       PageRouteBuilder(
-        pageBuilder: (context, animation, secondaryAnimation) => const AuthScreen(
-          isSetup: false,
-        ),
-        transitionsBuilder: (context, animation, secondaryAnimation, child) =>
-            FadeTransition(opacity: animation, child: child),
+        pageBuilder: (context, animation, secondaryAnimation) => const AuthScreen(isSetup: false),
+        transitionsBuilder: (context, animation, secondaryAnimation, child) => FadeTransition(opacity: animation, child: child),
         transitionDuration: const Duration(milliseconds: 400),
       ),
     );
