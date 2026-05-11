@@ -81,6 +81,9 @@ class _AuthScreenState extends ConsumerState<AuthScreen> with SingleTickerProvid
   }
 
   void _validateAnswer() {
+    // Always trigger rebuild to update button enabled state (Verify Answer / Finish Setup)
+    setState(() {});
+    
     if (!_isSettingUpSecurityQuestion) return;
     
     final text = _answerController.text;
@@ -98,6 +101,23 @@ class _AuthScreenState extends ConsumerState<AuthScreen> with SingleTickerProvid
     } else {
       setState(() => _answerError = null);
     }
+  }
+
+  bool _isPinWeak(String pin) {
+    final simplePins = ['0000', '1111', '2222', '3333', '4444', '5555', '6666', '7777', '8888', '9999', '1234', '4321', '0123', '3210', '1212', '2121', '0001', '1235'];
+    if (simplePins.contains(pin)) return true;
+    
+    // Check for sequential patterns (e.g., 2345)
+    final digits = pin.split('').map(int.parse).toList();
+    bool sequentialInc = true;
+    bool sequentialDec = true;
+    for (int i = 0; i < digits.length - 1; i++) {
+      if (digits[i + 1] != digits[i] + 1) sequentialInc = false;
+      if (digits[i + 1] != digits[i] - 1) sequentialDec = false;
+    }
+    if (sequentialInc || sequentialDec) return true;
+    
+    return false;
   }
 
   Future<void> _checkExistingPin() async {
@@ -185,8 +205,23 @@ class _AuthScreenState extends ConsumerState<AuthScreen> with SingleTickerProvid
     });
   }
 
+  bool _canSubmitAnswer() {
+    final text = _answerController.text.trim();
+    if (text.isEmpty) return false;
+    
+    // In setup mode, we also require no error (regex/length)
+    if (_isSettingUpSecurityQuestion) {
+      return _answerError == null && text.length >= 4;
+    }
+    
+    // In verification mode, any non-empty answer is allowed for check
+    return true;
+  }
+
   void _onKeyTap(String key) {
-    if (_pin.length >= 4 || _isVerifying || _isLockedOut) return;
+    // BLOCK input if already 4 digits, verifying, locked out, or showing a blocking error
+    if (_pin.length >= 4 || _isVerifying || _isLockedOut || _message == 'PIN Too Simple') return;
+    
     HapticFeedback.mediumImpact();
     setState(() {
       _pin += key;
@@ -197,7 +232,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> with SingleTickerProvid
   }
 
   void _onBackspace() {
-    if (_pin.isEmpty || _isVerifying || _isLockedOut) return;
+    if (_pin.isEmpty || _isVerifying || _isLockedOut || _message == 'PIN Too Simple') return;
     HapticFeedback.lightImpact();
     setState(() {
       _pin = _pin.substring(0, _pin.length - 1);
@@ -238,6 +273,26 @@ class _AuthScreenState extends ConsumerState<AuthScreen> with SingleTickerProvid
 
     if (widget.isSetup || _oldPinVerified) {
       if (_firstPin == null) {
+        // PIN complexity check - prevent weak PINs on FIRST entry
+        if (_isPinWeak(_pin)) {
+          HapticFeedback.heavyImpact();
+          setState(() {
+            _pin = ''; // Clear immediately
+            _message = 'PIN Too Simple';
+            _subMessage = 'Patterns like 1111 or 1234 are not allowed.';
+          });
+          
+          // Show error for 2 seconds then reset to prompt
+          await Future.delayed(const Duration(seconds: 2));
+          if (!mounted) return;
+          setState(() {
+            _isVerifying = false;
+            _message = 'Set your PIN';
+            _subMessage = 'Create a 4-digit code to secure your vault';
+          });
+          return;
+        }
+
         _firstPin = _pin;
         if (!mounted) return;
         setState(() {
@@ -248,6 +303,19 @@ class _AuthScreenState extends ConsumerState<AuthScreen> with SingleTickerProvid
         });
       } else {
         if (_pin == _firstPin) {
+          // Final safety check for PIN complexity
+          if (_isPinWeak(_pin)) {
+            HapticFeedback.heavyImpact();
+            setState(() {
+              _pin = '';
+              _firstPin = null;
+              _isVerifying = false;
+              _message = 'PIN Too Simple';
+              _subMessage = 'Please choose a more complex PIN.';
+            });
+            return;
+          }
+
           final salt = EncryptionService.generateSalt();
           // Use simple mode (10k iterations) for fast encryption
           final key = EncryptionService.deriveKey(_pin, salt, iterations: KeyDerivationConfig.simpleIterations);
@@ -271,6 +339,8 @@ class _AuthScreenState extends ConsumerState<AuthScreen> with SingleTickerProvid
             _isSettingUpSecurityQuestion = true;
             _message = 'Recovery Setup';
             _subMessage = 'Choose a question for account recovery';
+            _answerError = null; // Reset errors
+            _answerController.clear();
           });
 
           // Show mandatory info popup
@@ -332,7 +402,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> with SingleTickerProvid
               const Text('Use: JohnSnow, John_Snow'),
               const Text('NOT: John Snow'),
               const SizedBox(height: 12),
-              const Text('Important: Answers may be case-sensitive. Use something memorable and exact.', style: TextStyle(color: Colors.orange, fontWeight: FontWeight.bold)),
+              const Text('Important: Your input will be normalized to lowercase for verification.', style: TextStyle(color: Colors.orange, fontWeight: FontWeight.bold)),
             ],
           ),
         ),
@@ -541,7 +611,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> with SingleTickerProvid
             const SizedBox(height: 24),
             if (_isSettingUpSecurityQuestion)
               DropdownButtonFormField<String>(
-                initialValue: _selectedQuestion,
+                value: _selectedQuestion,
                 isExpanded: true, // Prevent horizontal overflow
                 decoration: InputDecoration(
                   labelText: 'Security Question',
@@ -580,6 +650,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> with SingleTickerProvid
             const SizedBox(height: 24),
             TextField(
               controller: _answerController,
+              onChanged: (v) => setState(() {}), // Force rebuild to update button state
               decoration: InputDecoration(
                 labelText: 'Your Answer',
                 errorText: _answerError,
@@ -587,20 +658,26 @@ class _AuthScreenState extends ConsumerState<AuthScreen> with SingleTickerProvid
               ),
             ),
             const Spacer(),
-            SizedBox(
-              width: double.infinity,
-              height: 56,
-              child: ElevatedButton(
-                onPressed: (_isSettingUpSecurityQuestion && _answerError != null) || _answerController.text.isEmpty
-                    ? null 
-                    : _saveOrVerifySecurityQuestion,
-                style: ElevatedButton.styleFrom(
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                  backgroundColor: Theme.of(context).primaryColor,
-                  foregroundColor: Colors.white,
-                ),
-                child: Text(_isSettingUpSecurityQuestion ? 'Finish Setup' : 'Verify Answer', style: const TextStyle(fontWeight: FontWeight.w900)),
-              ),
+            ValueListenableBuilder<TextEditingValue>(
+              valueListenable: _answerController,
+              builder: (context, value, _) {
+                final canSubmit = _canSubmitAnswer();
+                return SizedBox(
+                  width: double.infinity,
+                  height: 56,
+                  child: ElevatedButton(
+                    onPressed: canSubmit ? _saveOrVerifySecurityQuestion : null,
+                    style: ElevatedButton.styleFrom(
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      backgroundColor: Theme.of(context).primaryColor,
+                      foregroundColor: Colors.white,
+                      disabledBackgroundColor: Colors.grey.shade300,
+                      disabledForegroundColor: Colors.grey.shade500,
+                    ),
+                    child: Text(_isSettingUpSecurityQuestion ? 'Finish Setup' : 'Verify Answer', style: const TextStyle(fontWeight: FontWeight.w900)),
+                  ),
+                );
+              }
             ),
           ],
         ),
@@ -675,6 +752,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> with SingleTickerProvid
       _isVerifyingSecurityQuestion = true;
       _selectedQuestion = user!.securityQuestion;
       _answerController.clear();
+      _answerError = null; // Clear any old error
       _securityAnswerAttempts = 0;
     });
   }
@@ -690,33 +768,24 @@ class _AuthScreenState extends ConsumerState<AuthScreen> with SingleTickerProvid
       return;
     }
 
-    if (_answerController.text.isEmpty) return;
+    final inputAnswer = _answerController.text.trim().toLowerCase();
+    if (inputAnswer.isEmpty) return;
 
     if (_isSettingUpSecurityQuestion) {
       if (_selectedQuestion == null) return;
 
-      // PIN complexity check - prevent weak PINs
-      if (widget.isSetup && _pin.length == 4) {
-        final simplePins = ['0000', '1111', '2222', '3333', '4444', '5555', '6666', '7777', '8888', '9999', '1234', '4321', '0123', '3210'];
-        if (simplePins.contains(_pin)) {
-          if (!mounted) return;
-          SecuraNotifications.showError(
-            context,
-            'PIN is too simple. Please choose a more complex combination.',
-          );
-          return;
-        }
-      }
-
       final user = ref.read(userProvider);
       if (user != null) {
+        final answerHash = EncryptionService.hashString(inputAnswer);
+        
         final updatedUser = user.copyWith(
           securityQuestion: _selectedQuestion,
-          securityAnswerHash: EncryptionService.hashString(_answerController.text.trim().toLowerCase()),
+          securityAnswerHash: answerHash,
         );
 
+        // Explicitly await the save operation
         await ref.read(userProvider.notifier).saveUser(updatedUser);
-        await _logger.logEvent('Security Question Configured');
+        await _logger.logEvent('Security Question Configured', details: 'Question: $_selectedQuestion');
 
         if (mounted) {
           setState(() {
@@ -733,7 +802,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> with SingleTickerProvid
     } else {
       final user = await _storage.getCurrentUser();
       if (user != null) {
-        final answerHash = EncryptionService.hashString(_answerController.text.trim().toLowerCase());
+        final answerHash = EncryptionService.hashString(inputAnswer);
 
         if (answerHash == user.securityAnswerHash) {
           // Success - reset attempts and allow PIN reset
@@ -779,7 +848,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> with SingleTickerProvid
       mainAxisAlignment: MainAxisAlignment.center,
       children: List.generate(4, (index) {
         final isFilled = index < _pin.length;
-        final isActive = index == _pin.length && !_isVerifying;
+        final isActive = index == _pin.length && !_isVerifying && _message != 'PIN Too Simple';
         
         return AnimatedContainer(
           duration: const Duration(milliseconds: 200),
